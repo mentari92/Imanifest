@@ -4,6 +4,9 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Required for PrismaService onModuleDestroy to fire
+  app.enableShutdownHooks();
+
   app.enableCors({
     origin: [
       "http://localhost:8081",

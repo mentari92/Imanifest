@@ -95,6 +95,13 @@
 
 ---
 
+### Review Findings
+
+- [x] [Review][Decision] Dual export pattern ambiguity [`packages/database/src/index.ts`] — RESOLVED: Keep both + JSDoc (Opsi 1). `prisma` untuk non-NestJS, `PrismaService` untuk DI.
+- [x] [Review][Patch] Seed script creates duplicate tasks on re-run [`packages/database/prisma/seed.ts`] — FIXED: Added deleteMany cleanup before seed.
+- [x] [Review][Patch] Missing `enableShutdownHooks()` in NestJS bootstrap [`apps/server/src/main.ts`] — FIXED: Added `app.enableShutdownHooks()`.
+- [x] [Review][Defer] AC #3 "prisma migrate dev runs without errors" — not verifiable without running PostgreSQL. Deferred: requires live DB. [`_bmad-output/implementation-artifacts/1-2-database-schema-migration.md`] — deferred, requires live PostgreSQL
+
 ## Change Log
 
 | Date | Change |
@@ -105,4 +112,4 @@
 
 ## Status
 
-in-progress
+done

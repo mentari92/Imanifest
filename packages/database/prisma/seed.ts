@@ -5,6 +5,15 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
+  // Cleanup existing seed data (idempotency)
+  console.log("🧹 Cleaning existing seed data...");
+  await prisma.task.deleteMany({});
+  await prisma.reflection.deleteMany({});
+  await prisma.manifestation.deleteMany({});
+  await prisma.user.deleteMany({
+    where: { email: "demo@imanifest.app" },
+  });
+
   // Create a demo user
   const user = await prisma.user.upsert({
     where: { email: "demo@imanifest.app" },
