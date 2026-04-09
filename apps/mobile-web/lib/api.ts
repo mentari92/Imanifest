@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as SecureStore from "expo-secure-store";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -10,9 +11,16 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor — attach auth token when available
+// Request interceptor — attach JWT token from SecureStore
 api.interceptors.request.use(async (config) => {
-  // Token will be injected from SecureStore after auth is implemented
+  try {
+    const token = await SecureStore.getItemAsync("imanifest_jwt_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // SecureStore not available (web)
+  }
   return config;
 });
 

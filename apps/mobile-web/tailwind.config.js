@@ -89,6 +89,18 @@ module.exports = {
         "card-p":   "16px",
         "section":  "32px",
       },
+      fontSize: {
+        "display-xl": ["32px", { lineHeight: "40px", fontWeight: "700" }],
+        "display-lg": ["26px", { lineHeight: "34px", fontWeight: "700" }],
+        "display-md": ["22px", { lineHeight: "30px", fontWeight: "700" }],
+        "body-lg":    ["17px", { lineHeight: "26px", fontWeight: "400" }],
+        "body-md":    ["15px", { lineHeight: "24px", fontWeight: "400" }],
+        "body-sm":    ["13px", { lineHeight: "20px", fontWeight: "400" }],
+        "label":      ["13px", { lineHeight: "18px", fontWeight: "600" }],
+        "mono":       ["13px", { lineHeight: "20px", fontWeight: "400" }],
+        "arabic-lg":  ["26px", { lineHeight: "42px", fontWeight: "400" }],
+        "arabic-md":  ["20px", { lineHeight: "34px", fontWeight: "400" }],
+      },
       boxShadow: {
         card:    "0 1px 3px rgba(6, 78, 59, 0.08), 0 1px 2px rgba(6, 78, 59, 0.04)",
         "card-hover": "0 4px 12px rgba(6, 78, 59, 0.12)",

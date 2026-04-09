@@ -1,9 +1,17 @@
-import { View, Text, ScrollView } from "react-native";
-import { Sparkles } from "lucide-react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { Sparkles, RotateCcw } from "lucide-react-native";
+import { useImanSync } from "../../hooks/useImanSync";
+import { IntentionForm } from "../../components/iman-sync/IntentionForm";
+import { ImanSyncResult } from "../../components/iman-sync/ImanSyncResult";
+import { LoadingSpinner } from "../../components/shared/LoadingSpinner";
+import { ErrorMessage } from "../../components/shared/ErrorMessage";
 
 export default function ImanSyncScreen() {
+  const { result, isLoading, error, analyze, reset } = useImanSync();
+
   return (
     <ScrollView className="flex-1 bg-background px-screen-x py-screen-y">
+      {/* Header */}
       <View className="items-center mb-section">
         <Sparkles size={48} color="#064E3B" />
         <Text className="font-display text-display-lg text-primary mt-4">
@@ -14,14 +22,44 @@ export default function ImanSyncScreen() {
         </Text>
       </View>
 
-      <View className="bg-surface rounded-verse p-card-p border-l-2 border-primary">
-        <Text className="font-sans text-body-lg text-primary">
-          No manifestations yet.
-        </Text>
-        <Text className="font-sans text-body-sm text-ink-secondary mt-1">
-          Set your first intention to get started.
-        </Text>
-      </View>
+      {/* Loading state */}
+      {isLoading && (
+        <LoadingSpinner message="Finding your verses..." />
+      )}
+
+      {/* Error state */}
+      {error && !isLoading && (
+        <View className="mb-section">
+          <ErrorMessage message={error} />
+        </View>
+      )}
+
+      {/* Result — show after successful analysis */}
+      {result && !isLoading && (
+        <>
+          <ImanSyncResult
+            verses={result.verses}
+            aiSummary={result.aiSummary}
+          />
+
+          {/* New intention button */}
+          <TouchableOpacity
+            onPress={reset}
+            className="mt-section mb-8 rounded-button py-3 px-6 border border-primary flex-row items-center justify-center gap-2"
+            activeOpacity={0.8}
+          >
+            <RotateCcw size={16} color="#064E3B" />
+            <Text className="font-sans text-label text-primary">
+              New Intention
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* Form — show when no result and not loading */}
+      {!result && !isLoading && (
+        <IntentionForm onSubmit={analyze} isLoading={isLoading} />
+      )}
     </ScrollView>
   );
 }

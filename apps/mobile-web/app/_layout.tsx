@@ -1,5 +1,5 @@
 import "../global.css";
-import { Stack } from "expo-router";
+import { Stack, Redirect } from "expo-router";
 import { useFonts } from "expo-font";
 import {
   PlayfairDisplay_700Bold,
@@ -13,6 +13,26 @@ import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { JetBrainsMono_400Regular } from "@expo-google-fonts/jetbrains-mono";
 import { StatusBar } from "expo-status-bar";
 import { View, ActivityIndicator, Text } from "react-native";
+import { AuthProvider, useAuth } from "../lib/auth";
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" color="#064E3B" />
+        <Text className="mt-2 text-ink-secondary font-sans">Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <Redirect href="/auth" />;
+  }
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -34,22 +54,24 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: "#F8FAFC" },
-          headerTintColor: "#1C1917",
-          headerTitleStyle: { fontFamily: "PlayfairDisplay-Bold" },
-          contentStyle: { backgroundColor: "#F8FAFC" },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="auth"
-          options={{ title: "Sign In", presentation: "modal" }}
-        />
-      </Stack>
-    </>
+    <AuthProvider>
+      <AuthGate>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: "#F8FAFC" },
+            headerTintColor: "#1C1917",
+            headerTitleStyle: { fontFamily: "PlayfairDisplay-Bold" },
+            contentStyle: { backgroundColor: "#F8FAFC" },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="auth"
+            options={{ title: "Sign In", presentation: "modal" }}
+          />
+        </Stack>
+      </AuthGate>
+    </AuthProvider>
   );
 }
