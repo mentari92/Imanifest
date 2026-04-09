@@ -3,7 +3,7 @@
 **Story Key:** 1-1-turborepo-monorepo-setup
 **Epic:** Epic 1 — Foundation & Auth
 **Priority:** Must Have
-**Status:** review
+**Status:** done
 
 ---
 
@@ -136,13 +136,13 @@
 
 ### Review Findings
 
-- [ ] [Review][Decision] **`text-secondary` color namespace collision** — Tailwind color group `text` (text.primary, text.secondary) berbenturan dengan utility `text-*`. Class `text-secondary` tidak resolve ke `colors.text.secondary` tapi mencari `colors.secondary` (tidak ada). Pilihan: (A) Rename namespace dari `text` ke `ink` → class jadi `text-ink-secondary`, atau (B) Pakai class lengkap `text-text-secondary` di semua tempat, atau (C) Flat colors tanpa namespace: `textPrimary`, `textSecondary` sebagai top-level colors.
+- [x] [Review][Decision] **`text-secondary` color namespace collision** — RESOLVED: Opsi A `ink` namespace. Semua file diupdate: tailwind.config.js, theme.ts, _layout.tsx, index.tsx, dua-todo.tsx, heartpulse.tsx, sakinah.tsx, auth.tsx.
 
-- [ ] [Review][Patch] **Font name mismatch** — `tailwind.config.js` fontFamily names (`"Playfair Display"`, `"Lora"`, `"Amiri"`, `"JetBrains Mono"`) tidak cocok dengan expo-font register keys (`"PlayfairDisplay-Bold"`, `"Lora-Regular"`, dll). NativeWind tidak akan menemukan font-nya. Fix: sinkronkan nama di kedua tempat. [`apps/mobile-web/tailwind.config.js:74-78` + `apps/mobile-web/app/_layout.tsx:18-25`]
+- [x] [Review][Patch] **Font name mismatch** — FIXED: Tailwind fontFamily sekarang match expo-font keys (Lora-Regular, PlayfairDisplay-Bold, dll). [`apps/mobile-web/tailwind.config.js:74-78`]
 
-- [ ] [Review][Patch] **README outdated — says "Expo SDK 52" tapi aktual SDK 55** [`README.md:59`]
+- [x] [Review][Patch] **README outdated** — FIXED: "Expo SDK 52" → "Expo SDK 55". [`README.md:59`]
 
-- [ ] [Review][Patch] **No git init** — project belum punya version control
+- [x] [Review][Patch] **No git init** — FIXED: `git init` + initial commit `feat: Story 1.1`
 
 - [x] [Review][Defer] **Hardcoded `#A8A29E` in auth.tsx** [`apps/mobile-web/app/auth.tsx:18`] — deferred, pre-existing cosmetic issue
 
@@ -249,4 +249,4 @@
 
 ## Status
 
-ready-for-dev
+done
