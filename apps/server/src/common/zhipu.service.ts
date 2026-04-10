@@ -63,6 +63,30 @@ Be sincere and specific to the actual verses. Avoid generic phrasing.`;
   }
 
   /**
+   * Extract 3 Islamic spiritual themes from image + intent text using GLM-5V.
+   */
+  async extractThemesVision(
+    intentText: string,
+    imageBase64: string,
+    mimeType: string,
+  ): Promise<string[]> {
+    const userMessage = `Analyze the image and the user's intention: "${intentText}". Identify 3 core Islamic spiritual themes relevant to both. Return ONLY a JSON array of theme keywords.`;
+
+    try {
+      const response = await this.callGLM5Vision(userMessage, imageBase64, mimeType);
+      const parsed = this.parseJSONResponse<string[]>(response);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.slice(0, 3);
+      }
+      this.logger.warn("Unexpected vision themes response, using fallback");
+      return ["tawakkul", "sabr", "shukr"];
+    } catch (error) {
+      this.logger.error("Failed to extract themes from vision", error);
+      return ["tawakkul", "sabr", "shukr"];
+    }
+  }
+
+  /**
    * Core GLM-5 API call via OpenAI-compatible endpoint.
    */
   private async callGLM5(
@@ -86,6 +110,52 @@ Be sincere and specific to the actual verses. Avoid generic phrasing.`;
           "Content-Type": "application/json",
         },
         timeout: 15000,
+      },
+    );
+
+    return response.data?.choices?.[0]?.message?.content || "";
+  }
+
+  /**
+   * GLM-5V multimodal call — accepts base64 image + text prompt.
+   */
+  private async callGLM5Vision(
+    userMessage: string,
+    imageBase64: string,
+    mimeType: string,
+  ): Promise<string> {
+    const systemPrompt = `You are an Islamic spiritual guide and Quran scholar.
+Extract the 3 most relevant Islamic spiritual themes from the user's intention and the provided image.
+Return ONLY a valid JSON array of English keywords.
+Example: ["tawakkul","sabr","shukr"]
+Do not include any explanation or extra text.`;
+
+    const response = await axios.post(
+      `${this.baseUrl}/chat/completions`,
+      {
+        model: "glm-4v-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: userMessage },
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+              },
+            ],
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
       },
     );
 

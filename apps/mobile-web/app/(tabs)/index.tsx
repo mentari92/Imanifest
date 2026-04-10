@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Sparkles, RotateCcw } from "lucide-react-native";
 import { useImanSync } from "../../hooks/useImanSync";
@@ -7,7 +8,18 @@ import { LoadingSpinner } from "../../components/shared/LoadingSpinner";
 import { ErrorMessage } from "../../components/shared/ErrorMessage";
 
 export default function ImanSyncScreen() {
-  const { result, isLoading, error, analyze, reset } = useImanSync();
+  const { result, isLoading, error, analyze, analyzeVision, reset } = useImanSync();
+
+  const handleSubmit = useCallback(
+    (intentText: string, imageUri?: string, imageBase64?: string) => {
+      if (imageBase64) {
+        analyzeVision(intentText, imageBase64);
+      } else {
+        analyze(intentText);
+      }
+    },
+    [analyze, analyzeVision],
+  );
 
   return (
     <ScrollView className="flex-1 bg-background px-screen-x py-screen-y">
@@ -24,7 +36,7 @@ export default function ImanSyncScreen() {
 
       {/* Loading state */}
       {isLoading && (
-        <LoadingSpinner message="Finding your verses..." />
+        <LoadingSpinner message="Analyzing your intention..." />
       )}
 
       {/* Error state */}
@@ -58,7 +70,7 @@ export default function ImanSyncScreen() {
 
       {/* Form — show when no result and not loading */}
       {!result && !isLoading && (
-        <IntentionForm onSubmit={analyze} isLoading={isLoading} />
+        <IntentionForm onSubmit={handleSubmit} isLoading={isLoading} />
       )}
     </ScrollView>
   );

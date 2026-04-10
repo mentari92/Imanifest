@@ -11,6 +11,8 @@ interface UseImanSyncReturn {
   error: string | null;
   /** Trigger text analysis */
   analyze: (intentText: string) => Promise<void>;
+  /** Trigger vision analysis (image + text) */
+  analyzeVision: (intentText: string, imageBase64: string) => Promise<void>;
   /** Reset state to initial */
   reset: () => void;
 }
@@ -30,7 +32,6 @@ export function useImanSync(): UseImanSyncReturn {
         "/iman-sync/analyze",
         { intentText },
       );
-
       setResult(response.data);
     } catch (err) {
       const message =
@@ -43,11 +44,59 @@ export function useImanSync(): UseImanSyncReturn {
     }
   }, []);
 
+  const analyzeVision = useCallback(
+    async (intentText: string, imageBase64: string) => {
+      setIsLoading(true);
+      setError(null);
+      setResult(null);
+
+      try {
+        // Determine mime type from base64 header or default to jpeg
+        const mimeType = "image/jpeg";
+
+        const formData = new FormData();
+        formData.append("intentText", intentText);
+
+        // Create a blob from base64 for multipart upload
+        const byteCharacters = atob(imageBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+        formData.append("image", blob, "image.jpg");
+
+        const response = await api.post<ImanSyncAnalyzeResponse>(
+          "/iman-sync/analyze-vision",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            timeout: 15000,
+          },
+        );
+
+        setResult(response.data);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Vision analysis failed. Try again.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
   const reset = useCallback(() => {
     setResult(null);
     setError(null);
     setIsLoading(false);
   }, []);
 
-  return { result, isLoading, error, analyze, reset };
+  return { result, isLoading, error, analyze, analyzeVision, reset };
 }
