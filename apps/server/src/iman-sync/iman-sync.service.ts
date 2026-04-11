@@ -167,7 +167,7 @@ export class ImanSyncService {
     imagePath: string,
   ): Promise<AnalyzeVisionResult> {
     // Check cache for vision analysis too
-    const visionHash = this.hashText(`${intentText}:${imageBase64.substring(0, 100)}`);
+    const visionHash = this.hashText(`${intentText}:${imageBase64}`);
     const cacheKey = `iman-sync:vision:${userId}:${visionHash}`;
     try {
       const cached = await this.redis.get(cacheKey);

@@ -4,17 +4,18 @@ import { Public } from "./public.decorator";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 
-@Public()
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post("register")
   async register(@Body() dto: RegisterDto, @Req() req: any) {
     const ip = req.ip || req.socket?.remoteAddress;
     return this.authService.register(dto.email, dto.password, dto.name, ip);
   }
 
+  @Public()
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Req() req: any) {
