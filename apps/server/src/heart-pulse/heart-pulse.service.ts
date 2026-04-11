@@ -5,6 +5,8 @@ import { ZhipuService } from "../common/zhipu.service";
 /** Allow up to 36h gap between reflection days for timezone flexibility */
 const STREAK_TOLERANCE_DAYS = 1.5;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+/** Max lookback window for streak calculation */
+const STREAK_LOOKBACK_DAYS = 35;
 
 @Injectable()
 export class HeartPulseService {
@@ -70,10 +72,14 @@ export class HeartPulseService {
 
   /** Calculate current streak for user. */
   private async calculateStreak(userId: string): Promise<number> {
+    const lookbackDate = new Date(Date.now() - STREAK_LOOKBACK_DAYS * ONE_DAY_MS);
     const reflections = await this.prisma.reflection.findMany({
-      where: { userId },
+      where: {
+        userId,
+        streakDate: { gte: lookbackDate },
+      },
       orderBy: { streakDate: "desc" },
-      take: 365,
+      take: STREAK_LOOKBACK_DAYS,
     });
 
     if (reflections.length === 0) return 0;

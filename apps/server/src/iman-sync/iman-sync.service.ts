@@ -166,6 +166,19 @@ export class ImanSyncService {
     mimeType: string,
     imagePath: string,
   ): Promise<AnalyzeVisionResult> {
+    // Check cache for vision analysis too
+    const visionHash = this.hashText(`${intentText}:${imageBase64.substring(0, 100)}`);
+    const cacheKey = `iman-sync:vision:${userId}:${visionHash}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        this.logger.log(`Vision cache hit for key: ${cacheKey.substring(0, 30)}...`);
+        return JSON.parse(cached) as AnalyzeVisionResult;
+      }
+    } catch (err) {
+      this.logger.warn("Vision cache read failed — continuing with full pipeline", err instanceof Error ? err.message : err);
+    }
+
     const startTime = Date.now();
 
     // Step 1: Extract spiritual themes from image + text via GLM-5V
@@ -187,6 +200,16 @@ export class ImanSyncService {
     const elapsed = Date.now() - startTime;
     this.logger.log(`Vision analysis complete in ${elapsed}ms — manifestation ${baseResult.manifestationId}`);
 
-    return { ...baseResult, imagePath };
+    const result = { ...baseResult, imagePath };
+
+    // Cache the vision result
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
+      this.logger.log(`Cached vision result for key: ${cacheKey.substring(0, 30)}...`);
+    } catch (err) {
+      this.logger.warn("Vision cache write failed — non-critical", err instanceof Error ? err.message : err);
+    }
+
+    return result;
   }
 }

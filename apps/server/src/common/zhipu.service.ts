@@ -11,6 +11,9 @@ export class ZhipuService {
   private readonly apiKey = process.env.ZHIPU_API_KEY || "";
   private readonly baseUrl = "https://open.bigmodel.cn/api/paas/v4";
 
+  private static readonly GLM_BASE_HEADERS: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   private static readonly THEME_FALLBACK = ["tawakkul", "sabr", "shukr"];
   private static readonly TASK_FALLBACK = [
     "Pray all 5 daily prayers on time",
@@ -178,8 +181,8 @@ Do not include any explanation or extra text.`;
       },
       {
         headers: {
+          ...ZhipuService.GLM_BASE_HEADERS,
           Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
         },
         timeout: 15000,
       },
@@ -224,8 +227,8 @@ Do not include any explanation or extra text.`;
       },
       {
         headers: {
+          ...ZhipuService.GLM_BASE_HEADERS,
           Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
         },
         timeout: 20000,
       },
@@ -236,13 +239,18 @@ Do not include any explanation or extra text.`;
 
   /**
    * Parse JSON from GLM-5 response (handles markdown code blocks).
+   * Returns null if parsing fails instead of throwing.
    */
-  private parseJSONResponse<T>(text: string): T {
-    // Strip markdown code blocks if present
-    const cleaned = text
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
-    return JSON.parse(cleaned) as T;
+  private parseJSONResponse<T>(text: string): T | null {
+    try {
+      const cleaned = text
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+      return JSON.parse(cleaned) as T;
+    } catch {
+      this.logger.warn(`Failed to parse JSON response: ${text.substring(0, 100)}...`);
+      return null;
+    }
   }
 }

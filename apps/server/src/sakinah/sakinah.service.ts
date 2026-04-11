@@ -1,5 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import axios from "axios";
+
+const MIN_SURAH = 1;
+const MAX_SURAH = 114;
 
 interface Reciter {
   id: number;
@@ -49,15 +52,17 @@ export class SakinahService {
    * Get audio URL for a specific reciter + surah.
    */
   async getAudioUrl(reciterId: number, surahNumber: number): Promise<AudioUrl> {
-    try {
-      // Use Quran.audio CDN pattern for direct audio
-      const paddedSurah = String(surahNumber).padStart(3, "0");
-      const url = `https://cdn.islamic.network/quran/audio/128/${reciterId}/${paddedSurah}.mp3`;
-      return { url };
-    } catch (error) {
-      this.logger.error("Failed to get audio URL", error);
-      throw error;
+    if (surahNumber < MIN_SURAH || surahNumber > MAX_SURAH) {
+      throw new BadRequestException(
+        `Invalid surah number: ${surahNumber}. Must be between ${MIN_SURAH} and ${MAX_SURAH}.`,
+      );
     }
+    if (reciterId <= 0) {
+      throw new BadRequestException(`Invalid reciter ID: ${reciterId}. Must be a positive number.`);
+    }
+    const paddedSurah = String(surahNumber).padStart(3, "0");
+    const url = `https://cdn.islamic.network/quran/audio/128/${reciterId}/${paddedSurah}.mp3`;
+    return { url };
   }
 
   /**
