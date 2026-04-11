@@ -1,0 +1,37 @@
+{
+  "folders": [
+    {
+      "name": "📱 FRONTEND (mobile-web)",
+      "path": "apps/mobile-web"
+    },
+    {
+      "name": "🖥️ BACKEND (server)",
+      "path": "apps/server"
+    },
+    {
+      "name": "📦 SHARED (packages)",
+      "path": "packages"
+    },
+    {
+      "name": "⚙️ INFRA (docker + config)",
+      "path": ".",
+      "uri": "file:///."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "apps/**": false,
+      "packages/**": false,
+      "_bmad-output/**": true,
+      "Brain/**": true,
+      "node_modules": true,
+      ".git": true
+    },
+    "search.exclude": {
+      "_bmad-output/**": true,
+      "Brain/**": true,
+      "node_modules": true,
+      "pnpm-lock.yaml": true
+    }
+  }
+}
