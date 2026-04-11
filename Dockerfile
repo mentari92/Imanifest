@@ -26,8 +26,8 @@ RUN pnpm --filter @imanifest/database prisma generate
 # Build the server
 RUN pnpm --filter @imanifest/server build
 
-# Prune devDependencies for production
-RUN pnpm install --prod --frozen-lockfile
+# Skip pruning devDependencies for now (pnpm workspaces symlink issue)
+# TODO: optimize with pnpm deploy later
 
 # ─── Stage 2: Production ──────────────────────────────────
 FROM node:20-alpine AS runner
