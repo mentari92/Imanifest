@@ -11,6 +11,8 @@ interface UseImanSyncReturn {
   error: string | null;
   /** Trigger text analysis */
   analyze: (intentText: string) => Promise<void>;
+  /** Real-time verse discovery */
+  quickSearch: (text: string) => Promise<any[]>;
   /** Trigger vision analysis (image + text) */
   analyzeVision: (intentText: string, imageBase64: string, imageUri?: string) => Promise<void>;
   /** Reset state to initial */
@@ -41,6 +43,16 @@ export function useImanSync(): UseImanSyncReturn {
       setError(message);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const quickSearch = useCallback(async (text: string) => {
+    try {
+      const response = await api.post<{ verses: any[] }>("/iman-sync/quick-search", { text });
+      return response.data.verses;
+    } catch (err) {
+      console.error("Quick search failed", err);
+      return [];
     }
   }, []);
 
@@ -103,5 +115,5 @@ export function useImanSync(): UseImanSyncReturn {
     setIsLoading(false);
   }, []);
 
-  return { result, isLoading, error, analyze, analyzeVision, reset };
+  return { result, isLoading, error, analyze, quickSearch, analyzeVision, reset };
 }

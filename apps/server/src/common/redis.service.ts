@@ -16,13 +16,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     try {
       const url = process.env.REDIS_URL || "redis://localhost:6379";
       this.client = new Redis(url, {
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
         retryStrategy(times) {
-          if (times > 5) {
-            // Stop retrying after 5 attempts
+          if (times > 2) {
+            // Stop retrying — Redis not available for this session
             return null;
           }
-          return Math.min(times * 200, 2000);
+          return Math.min(times * 500, 1000);
         },
         lazyConnect: true,
       });

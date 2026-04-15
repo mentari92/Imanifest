@@ -44,19 +44,20 @@ export default function AuthScreen() {
 
   return (
     <View className="flex-1 bg-background px-screen-x py-screen-y justify-center">
-      <Text className="font-display text-display-xl text-primary text-center mb-section">
+      <View className="bg-surface-card border border-border shadow-card rounded-[24px] p-6 backdrop-blur-md">
+        <Text className="font-display text-display-xl text-primary text-center mb-2 mt-4">
         Imanifest
       </Text>
-      <Text className="font-sans text-body-lg text-primary text-center mb-8">
-        Turn your intention into action.
-      </Text>
+        <Text className="font-sans text-body-lg text-ink-secondary text-center mb-8 italic">
+          Turn your intention into action.
+        </Text>
 
       {/* Name field (register only) */}
       {!isLogin && (
         <TextInput
           className="bg-surface-input rounded-button px-4 py-3 font-sans text-body-md text-primary mb-4 border border-surface"
-          placeholder="Name (optional)"
-          placeholderTextColor={colors.ink.disabled}
+          placeholder="Full Name"
+          placeholderTextColor="#9896A9"
           value={name}
           onChangeText={setName}
         />
@@ -95,17 +96,18 @@ export default function AuthScreen() {
         )}
       </TouchableOpacity>
 
-      {/* Toggle Login/Register */}
-      <TouchableOpacity
-        className="mt-4 items-center"
-        onPress={() => setIsLogin(!isLogin)}
-      >
-        <Text className="font-sans text-body-sm text-highlight">
-          {isLogin
-            ? "Don't have an account? Sign Up"
-            : "Already have an account? Sign In"}
-        </Text>
-      </TouchableOpacity>
+        {/* Toggle Login/Register */}
+        <TouchableOpacity
+          className="mt-6 mb-4 items-center"
+          onPress={() => setIsLogin(!isLogin)}
+        >
+          <Text className="font-sans text-body-sm text-ink-secondary hover:text-primary">
+            {isLogin
+              ? "Don't have an account? Sign Up"
+              : "Already have an account? Sign In"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

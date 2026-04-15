@@ -51,13 +51,7 @@ describe("HeartPulseService", () => {
     });
   });
 
-  describe("fetchQuranFoundationStreak", () => {
-    it("should return null when QF User API not configured", async () => {
-      const result = await service.fetchQuranFoundationStreak("user-1");
 
-      expect(result).toBeNull();
-    });
-  });
 
   describe("reflectText", () => {
     const userId = "user-1";

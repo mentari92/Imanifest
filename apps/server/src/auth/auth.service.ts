@@ -40,6 +40,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string, ip?: string) {
+    this.logger.log(`Login attempt for: ${email}`);
     if (ip) await this.checkRateLimit(ip);
 
     const user = await this.prisma.user.findUnique({ where: { email } });

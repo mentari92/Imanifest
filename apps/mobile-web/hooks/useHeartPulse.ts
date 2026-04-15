@@ -12,10 +12,17 @@ interface Reflection {
   createdAt: string;
 }
 
+interface AIInsight {
+  spiritual: string;
+  tafsir: string;
+  scientific: string;
+}
+
 interface UseHeartPulseReturn {
   reflection: Reflection | null;
   sentiment: string | null;
   sentimentScore: number | null;
+  aiInsight: AIInsight | null;
   streakCount: number;
   history: Reflection[];
   historyLoading: boolean;
@@ -31,6 +38,7 @@ export function useHeartPulse(): UseHeartPulseReturn {
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [sentimentScore, setSentimentScore] = useState<number | null>(null);
+  const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
   const [streakCount, setStreakCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +56,7 @@ export function useHeartPulse(): UseHeartPulseReturn {
       setSentiment(res.data.sentiment);
       setSentimentScore(res.data.sentimentScore);
       setStreakCount(res.data.streakCount);
+      setAiInsight(res.data.aiInsight);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit reflection");
     } finally {
@@ -74,6 +83,7 @@ export function useHeartPulse(): UseHeartPulseReturn {
       setSentiment(res.data.sentiment);
       setSentimentScore(res.data.sentimentScore);
       setStreakCount(res.data.streakCount);
+      setAiInsight(res.data.aiInsight);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit voice reflection");
     } finally {
@@ -100,6 +110,7 @@ export function useHeartPulse(): UseHeartPulseReturn {
     setReflection(null);
     setSentiment(null);
     setSentimentScore(null);
+    setAiInsight(null);
     setStreakCount(0);
     setError(null);
     setIsLoading(false);
@@ -109,6 +120,7 @@ export function useHeartPulse(): UseHeartPulseReturn {
     reflection,
     sentiment,
     sentimentScore,
+    aiInsight,
     streakCount,
     history,
     historyLoading,

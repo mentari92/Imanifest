@@ -2,22 +2,22 @@
 // For non-Tailwind usage (charts, animations, conditional styles)
 
 export const colors = {
-  primary:    "#064E3B",
-  accent:     "#54161B",
-  highlight:  "#E3C567",
-  background: "#F8FAFC",
-  surface:    "#F1F5F0",
+  primary:    "#F8FAFC", // Off White
+  accent:     "#D4AF37", // Gold
+  highlight:  "#FFFFFF",
+  background: "#064E3B", // Emerald Deep
+  surface:    "rgba(2, 44, 34, 0.6)", // Darker semi-transparent
   ink: {
-    primary:   "#1C1917",
-    secondary: "#78716C",
-    disabled:  "#A8A29E",
-    inverse:   "#F8FAFC",
+    primary:   "#F8FAFC",
+    secondary: "#94A3B8", // Slate 400
+    disabled:  "#475569", 
+    inverse:   "#1A1829",
   },
   status: {
-    error:   "#9F1239",
-    success: "#166534",
-    warning: "#92400E",
-    info:    "#1E40AF",
+    error:   "#FF6B6B",
+    success: "#40C057",
+    warning: "#FFD43B",
+    info:    "#4DABF7",
   },
 } as const;
 

@@ -114,11 +114,33 @@ export class SakinahService {
     }
 
     const cacheKey = `sakinah:audio:${reciterId}:${surahNumber}`;
-
     return this.withCache(cacheKey, CACHE_TTL_AUDIO, async () => {
-      const paddedSurah = String(surahNumber).padStart(3, "0");
-      const url = `https://cdn.islamic.network/quran/audio/128/${reciterId}/${paddedSurah}.mp3`;
-      return { url } as AudioUrl;
+      try {
+        const res = await axios.get(`${this.quranAudioBaseUrl}/chapter_recitations/${reciterId}/${surahNumber}`);
+        let url = res.data?.audio_file?.audio_url;
+        if (!url) throw new Error("Audio URL not found");
+        
+        // Ensure https
+        if (url.startsWith("http://")) {
+            url = url.replace("http://", "https://");
+        }
+        return { url };
+      } catch (err) {
+        this.logger.warn(`Primary audio fetch failed for ${reciterId}/${surahNumber}, trying robust fallback...`);
+        const paddedSurah = String(surahNumber).padStart(3, "0");
+        
+        // Islamic.network is generally very solid as a 128kbps fallback
+        // Mapping common reciters to their ar. identifier
+        const reciterMap: Record<number, string> = {
+          7: "ar.alafasy",
+          1: "ar.abdulsamad",
+          3: "ar.sudais",
+          10: "ar.minshawi",
+        };
+        
+        const identifier = reciterMap[reciterId] || "ar.alafasy";
+        return { url: `https://cdn.islamic.network/quran/audio/128/${identifier}/${surahNumber}.mp3` };
+      }
     });
   }
 

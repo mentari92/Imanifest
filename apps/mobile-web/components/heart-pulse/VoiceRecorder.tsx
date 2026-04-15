@@ -1,10 +1,6 @@
-import { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Mic, Square, Play, Pause, Send } from "lucide-react-native";
-import { Audio } from "expo-av";
-import { TextInput } from "react-native";
-
-const MAX_DURATION_MS = 120_000; // 2 minutes
+import { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator, TextInput, Platform } from "react-native";
+import { Mic, Square, Send, Info } from "lucide-react-native";
 
 interface VoiceRecorderProps {
   onSubmit: (audioUri: string, transcriptText: string) => Promise<void>;
@@ -12,132 +8,68 @@ interface VoiceRecorderProps {
 }
 
 export function VoiceRecorder({ onSubmit, isLoading }: VoiceRecorderProps) {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [durationMs, setDurationMs] = useState(0);
   const [transcriptText, setTranscriptText] = useState("");
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [hasWebSpeech, setHasWebSpeech] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
-  const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Request permission on mount
   useEffect(() => {
-    (async () => {
-      const { status } = await Audio.requestPermissionsAsync();
-      setHasPermission(status === "granted");
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-    })();
+    // Check if Web Speech API is supported
+    if (Platform.OS === "web") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setHasWebSpeech(true);
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US"; // Global competition, use English
 
-    return () => {
-      if (durationInterval.current) clearInterval(durationInterval.current);
-      if (sound) sound.unloadAsync();
-    };
+        recognition.onresult = (event: any) => {
+          let currentTranscript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            currentTranscript += event.results[i][0].transcript;
+          }
+          setTranscriptText(currentTranscript);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
   }, []);
 
-  const startRecording = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+  const toggleRecording = () => {
+    if (!hasWebSpeech || !recognitionRef.current) return;
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordingUri(null);
-      setDurationMs(0);
-
-      // Start duration timer
-      durationInterval.current = setInterval(() => {
-        setDurationMs((prev) => {
-          if (prev >= MAX_DURATION_MS) {
-            stopRecording();
-            return MAX_DURATION_MS;
-          }
-          return prev + 100;
-        });
-      }, 100);
-    } catch {
-      // Silently handle — UI state stays false
-    }
-  };
-
-  const stopRecording = async () => {
-    if (!recording) return;
-
-    if (durationInterval.current) {
-      clearInterval(durationInterval.current);
-      durationInterval.current = null;
-    }
-
-    try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      if (uri) setRecordingUri(uri);
-    } catch {
-      // Recording stop failed
-    } finally {
-      setRecording(null);
+    if (isRecording) {
+      recognitionRef.current.stop();
       setIsRecording(false);
-    }
-  };
-
-  const playPreview = async () => {
-    if (!recordingUri) return;
-
-    // Stop previous playback
-    if (sound) {
-      await sound.unloadAsync();
-      setSound(null);
-    }
-
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: recordingUri },
-      { shouldPlay: true },
-      (status) => {
-        if (status.isLoaded) {
-          setIsPlaying(status.isPlaying);
-          if (status.didJustFinish) setIsPlaying(false);
-        }
-      },
-    );
-    setSound(newSound);
-  };
-
-  const stopPreview = async () => {
-    if (sound) {
-      await sound.pauseAsync();
-      setIsPlaying(false);
+    } else {
+      setTranscriptText("");
+      recognitionRef.current.start();
+      setIsRecording(true);
     }
   };
 
   const handleSubmit = async () => {
-    if (!recordingUri || !transcriptText.trim()) return;
-    await onSubmit(recordingUri, transcriptText.trim());
+    if (!transcriptText.trim()) return;
+    await onSubmit("web-speech-api-audio", transcriptText.trim());
   };
 
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  // Permission denied
-  if (hasPermission === false) {
+  if (!hasWebSpeech && Platform.OS === "web") {
     return (
-      <View className="bg-surface rounded-2xl px-5 py-6 border border-border items-center mt-4">
-        <Mic size={32} color="#78716C" />
+      <View className="bg-surface-card rounded-[24px] px-5 py-6 border border-border shadow-card backdrop-blur-md items-center mt-4">
+        <Info size={32} color="#D4AF37" />
         <Text className="font-sans text-body-sm text-ink-secondary mt-3 text-center">
-          Mikrofon diperlukan untuk rekam suara. Aktifkan di pengaturan.
+          Voice recording is only supported on Chrome or Safari browsers. Please type your reflection instead.
         </Text>
       </View>
     );
@@ -145,106 +77,53 @@ export function VoiceRecorder({ onSubmit, isLoading }: VoiceRecorderProps) {
 
   return (
     <View className="mt-4 space-y-4">
-      {/* Recording Controls */}
-      <View className="bg-surface rounded-2xl px-5 py-6 border border-border items-center">
-        {/* Timer */}
-        <Text className="font-display text-display-lg text-primary">
-          {formatTime(durationMs)}
+      <View className="bg-surface-card rounded-[24px] px-5 py-8 border border-border shadow-card backdrop-blur-md items-center">
+        <Text className="font-display text-display-lg text-primary">{isRecording ? "Listening..." : "Tap to Speak"}</Text>
+        <Text className="font-sans text-body-xs text-ink-secondary mt-1 text-center px-6">
+          {isRecording ? "Speak clearly, the AI is listening to your heart's reflection..." : "Your voice will be instantly transcribed to text"}
         </Text>
-        <Text className="font-sans text-body-xs text-ink-secondary mt-1">
-          {isRecording ? "Merekam..." : recordingUri ? "Selesai merekam" : "Siap merekam"}
-        </Text>
-
-        {/* Duration bar */}
-        <View className="w-full h-2 bg-border rounded-full mt-4 overflow-hidden">
-          <View
-            className="h-full bg-primary rounded-full"
-            style={{ width: `${Math.min((durationMs / MAX_DURATION_MS) * 100, 100)}%` }}
-          />
-        </View>
-        <Text className="font-sans text-body-xs text-ink-secondary mt-1">
-          Maks 2:00
-        </Text>
-
-        {/* Record / Stop button */}
-        <View className="flex-row items-center mt-4 gap-4">
-          {!isRecording && !recordingUri && (
-            <TouchableOpacity
-              onPress={startRecording}
-              className="w-16 h-16 bg-red-500 rounded-full items-center justify-center active:opacity-80"
-            >
-              <Mic size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-
-          {isRecording && (
-            <TouchableOpacity
-              onPress={stopRecording}
-              className="w-16 h-16 bg-red-500 rounded-full items-center justify-center active:opacity-80"
-            >
-              <Square size={28} color="#FFFFFF" fill="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-
-          {/* Playback controls */}
-          {recordingUri && !isRecording && (
-            <>
-              <TouchableOpacity
-                onPress={isPlaying ? stopPreview : playPreview}
-                className="w-12 h-12 bg-primary/10 rounded-full items-center justify-center active:opacity-80"
-              >
-                {isPlaying ? (
-                  <Pause size={22} color="#064E3B" />
-                ) : (
-                  <Play size={22} color="#064E3B" fill="#064E3B" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  setRecordingUri(null);
-                  setDurationMs(0);
-                }}
-                className="px-4 py-2 rounded-xl bg-border"
-              >
-                <Text className="font-sans text-body-xs text-ink-secondary">
-                  Rekam Ulang
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-
-      {/* Transcript input + Submit */}
-      {recordingUri && !isRecording && (
-        <View className="space-y-3">
-          <TextInput
-            value={transcriptText}
-            onChangeText={setTranscriptText}
-            placeholder="Tulis transkrip refleksi suaramu..."
-            className="bg-surface border border-border rounded-2xl px-4 py-3 font-sans text-body-sm text-ink-primary"
-            multiline
-            numberOfLines={3}
-            style={{ textAlignVertical: "top" }}
-          />
-
+        <View className="flex-row items-center mt-8">
           <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!transcriptText.trim() || isLoading}
-            className="bg-primary rounded-button py-3 px-6 flex-row items-center justify-center gap-2 active:opacity-80 disabled:opacity-50"
+            onPress={toggleRecording}
+            className={`w-24 h-24 rounded-full items-center justify-center shadow-gold active:scale-95 transition-all ${isRecording ? "bg-red-500/20 border-2 border-red-500" : "bg-primary"}`}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+            {isRecording ? (
+              <View className="w-16 h-16 bg-red-500 rounded-full items-center justify-center animate-pulse">
+                <Square size={28} color="#FFFFFF" fill="#FFFFFF" />
+              </View>
             ) : (
-              <Send size={18} color="#FFFFFF" />
+              <Mic size={32} color="#022C22" />
             )}
-            <Text className="font-sans text-label text-white">
-              {isLoading ? "Mengirim..." : "Kirim Refleksi"}
-            </Text>
           </TouchableOpacity>
         </View>
-      )}
+        {isRecording && (
+          <View className="mt-4 flex-row gap-1">
+             {[1,2,3,4].map(i => <View key={i} className="w-1.5 h-4 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: `${i*0.2}s` }} />)}
+          </View>
+        )}
+      </View>
+      <View className="space-y-3 mt-4">
+        <TextInput
+          value={transcriptText}
+          onChangeText={setTranscriptText}
+          placeholder="Your transcription will appear here..."
+          className="bg-surface-card border border-border rounded-[20px] px-5 py-5 font-sans text-body-md text-ink-primary shadow-sm"
+          multiline
+          numberOfLines={4}
+          style={{ textAlignVertical: "top", minHeight: 120 }}
+          placeholderTextColor="#475569"
+        />
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={!transcriptText.trim() || isLoading}
+          className="bg-primary rounded-button py-5 px-6 flex-row items-center justify-center gap-2 active:opacity-80 disabled:opacity-50 shadow-gold"
+        >
+          {isLoading ? <ActivityIndicator color="#022C22" size="small" /> : <Send size={20} color="#022C22" />}
+          <Text className="font-sans text-label text-ink-inverse font-bold">
+            {isLoading ? "Generating Insight..." : "Submit Reflection"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

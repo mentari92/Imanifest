@@ -19,10 +19,10 @@ import { RedisService } from "../common/redis.service";
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Rate limit configuration
-const TEXT_RATE_LIMIT = 10; // max 10 text requests per hour
-const VISION_RATE_LIMIT = 5; // max 5 vision requests per hour
-const RATE_WINDOW_SECONDS = 3600; // 1 hour
+// Rate limit configuration — DISABLED for Hackathon
+const TEXT_RATE_LIMIT = 99999; 
+const VISION_RATE_LIMIT = 99999; 
+const RATE_WINDOW_SECONDS = 3600;
 
 @Controller("iman-sync")
 @UseGuards(JwtAuthGuard)
@@ -57,6 +57,16 @@ export class ImanSyncController {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+  }
+
+  @Post("quick-search")
+  async quickSearch(
+    @Request() req: { user: { userId: string } },
+    @Body("text") text: string,
+  ) {
+    if (!text?.trim()) return { verses: [] };
+    const verses = await this.imanSyncService.quickSearch(text);
+    return { verses };
   }
 
   @Post("analyze")

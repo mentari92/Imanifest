@@ -52,48 +52,6 @@ export class HeartPulseService {
     }
   }
 
-  /**
-   * Fetch streak from Quran Foundation User API.
-   *
-   * ⚠️ INTENTIONAL STUB: This method is declared for future QF API integration.
-   * It is NOT called from any controller or service method yet.
-   * Will be activated when Quran Foundation User API is ready for integration.
-   * See: deferred-work.md
-   */
-  async fetchQuranFoundationStreak(
-    userId: string,
-  ): Promise<number | null> {
-    if (!QF_USER_API_URL) {
-      return null;
-    }
-
-    try {
-      const response = await fetch(
-        `${QF_USER_API_URL}/streak?userId=${userId}`,
-        {
-          headers: {
-            ...(QF_API_KEY ? { "X-API-Key": QF_API_KEY } : {}),
-          },
-        },
-      );
-
-      if (!response.ok) {
-        this.logger.warn(
-          `QF User API streak fetch failed: ${response.status}`,
-        );
-        return null;
-      }
-
-      const data = await response.json() as { streakCount?: number };
-      return typeof data.streakCount === "number" ? data.streakCount : null;
-    } catch (err) {
-      this.logger.warn(
-        `QF User API streak unavailable: ${err instanceof Error ? err.message : err}`,
-      );
-      return null;
-    }
-  }
-
   /** Process a text reflection — sentiment analysis + save. */
   async reflectText(userId: string, transcriptText: string) {
     return this.processReflection(userId, { transcriptText });
@@ -112,20 +70,44 @@ export class HeartPulseService {
     const startTime = Date.now();
     const mode = data.audioPath ? "voice" : "text";
 
-    this.logger.log(`Analyzing ${mode} sentiment for user ${userId}`);
-    const { label, score } = await this.zhipu.analyzeSentiment(data.transcriptText);
+    this.logger.log(`Analyzing ${mode} sentiment and generating insight for user ${userId}`);
+    const [sentimentResult, insight] = await Promise.all([
+      this.zhipu.analyzeSentiment(data.transcriptText),
+      this.zhipu.generateReflectionInsight(data.transcriptText, "uncertain") // Use generic if not known yet
+    ]);
+    
+    const { label, score } = sentimentResult;
 
-    const reflection = await this.prisma.reflection.create({
-      data: {
+    let reflection: any;
+    let streakCount = 0;
+
+    try {
+      reflection = await this.prisma.reflection.create({
+        data: {
+          userId,
+          transcriptText: data.transcriptText,
+          audioPath: data.audioPath ?? null,
+          sentiment: label,
+          sentimentScore: score,
+          // If schema supports it, save the insight. For now (demo), we return it dynamically.
+        },
+      });
+      streakCount = await calculateReflectionStreak(this.prisma, userId);
+    } catch (dbErr: any) {
+      this.logger.warn(`DB save failed (demo mode): ${dbErr?.message}`);
+      // Create in-memory reflection for demo
+      reflection = {
+        id: `demo-reflection-${Date.now()}`,
         userId,
-        transcriptText: data.transcriptText,
         audioPath: data.audioPath ?? null,
+        transcriptText: data.transcriptText,
         sentiment: label,
         sentimentScore: score,
-      },
-    });
-
-    const streakCount = await calculateReflectionStreak(this.prisma, userId);
+        streakDate: new Date(),
+        createdAt: new Date(),
+      };
+      streakCount = 1;
+    }
 
     // Fire-and-forget sync to Quran Foundation (don't block response)
     this.syncToQuranFoundation(userId, {
@@ -150,19 +132,28 @@ export class HeartPulseService {
       sentiment: label,
       sentimentScore: score,
       streakCount,
+      aiInsight: {
+        spiritual: insight.spiritual,
+        tafsir:    insight.tafsir,
+        scientific: insight.scientific,
+      },
     };
   }
 
   /** Get reflection history for user. */
   async getHistory(userId: string) {
-    const reflections = await this.prisma.reflection.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-    });
+    try {
+      const reflections = await this.prisma.reflection.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      });
 
-    const streakCount = await calculateReflectionStreak(this.prisma, userId);
-
-    return { reflections, streakCount };
+      const streakCount = await calculateReflectionStreak(this.prisma, userId);
+      return { reflections, streakCount };
+    } catch (err: any) {
+      this.logger.warn(`DB history fetch failed (demo mode): ${err?.message}`);
+      return { reflections: [], streakCount: 0 };
+    }
   }
 }

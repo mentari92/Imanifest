@@ -22,11 +22,11 @@ export function SurahList({ surahs, selectedSurah, onSelect }: SurahListProps) {
       renderItem={({ item }) => (
         <TouchableOpacity
           onPress={() => onSelect(item)}
-          className={`px-4 py-3 rounded-xl mb-1 flex-row items-center ${
-            selectedSurah?.number === item.number ? "bg-primary/10" : "bg-surface"
+          className={`px-4 py-3 rounded-[16px] mb-2 border border-border backdrop-blur-md shadow-sm transition-all flex-row items-center ${
+            selectedSurah?.number === item.number ? "bg-accent/20 border-accent/40" : "bg-surface-input"
           }`}
         >
-          <View className="w-8 h-8 bg-primary/10 rounded-full items-center justify-center mr-3">
+          <View className="w-8 h-8 bg-surface-card rounded-full items-center justify-center mr-3 border border-border shadow-sm">
             <Text className="font-sans text-body-xs text-primary font-semibold">
               {item.number}
             </Text>

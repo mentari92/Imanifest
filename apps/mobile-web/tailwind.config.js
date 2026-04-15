@@ -1,6 +1,7 @@
 // apps/mobile-web/tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
@@ -11,64 +12,39 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#064E3B",
-          50:  "#ECFDF5",
-          100: "#D1FAE5",
-          200: "#A7F3D0",
-          300: "#6EE7B7",
-          400: "#34D399",
-          500: "#10B981",
-          600: "#059669",
-          700: "#047857",
-          800: "#065F46",
-          900: "#064E3B",  // brand primary
+          DEFAULT: "#D4AF37", // Gold
+          light: "#E5C158",
         },
         accent: {
-          DEFAULT: "#54161B",
-          50:  "#FFF1F2",
-          100: "#FFE4E6",
-          200: "#FECDD3",
-          300: "#FDA4AF",
-          400: "#FB7185",
-          500: "#8B2635",
-          600: "#6B1D26",
-          700: "#5A1920",
-          800: "#54161B",  // brand accent
-          900: "#450F14",
+          DEFAULT: "#F8FAFC", // Off White
+          secondary: "#10B981", // Emerald
         },
         highlight: {
-          DEFAULT: "#E3C567",
-          50:  "#FEFCE8",
-          100: "#FEF9C3",
-          200: "#FEF08A",
-          300: "#F5D878",
-          400: "#E3C567",  // brand highlight
-          500: "#CA9A3C",
-          600: "#A37C2A",
-          700: "#7C5E1D",
-          800: "#5A4315",
-          900: "#3B2C0C",
+          DEFAULT: "#FFFFFF",
         },
         surface: {
-          DEFAULT: "#F1F5F0",
-          card:    "#F1F5F0",
-          modal:   "#FFFFFF",
-          input:   "#F8FAFC",
+          DEFAULT: "rgba(2, 44, 34, 0.4)", // Darker Emerald glass
+          card:    "rgba(6, 78, 59, 0.6)", // Medium Emerald card
+          modal:   "rgba(2, 44, 34, 0.95)",
+          input:   "rgba(255, 255, 255, 0.05)",
         },
         background: {
-          DEFAULT: "#F8FAFC",
+          DEFAULT: "#022C22", // Deepest Emerald
+        },
+        border: {
+          DEFAULT: "rgba(212, 175, 55, 0.2)", // Subtle Gold border
         },
         ink: {
-          primary:   "#1C1917",
-          secondary: "#78716C",
-          disabled:  "#A8A29E",
-          inverse:   "#F8FAFC",
+          primary:   "#F8FAFC", // Off-white text
+          secondary: "#94A3B8", // Muted slate
+          disabled:  "#475569",
+          inverse:   "#022C22", // Deep green text on gold buttons
         },
         status: {
-          error:   "#9F1239",
-          success: "#166534",
-          warning: "#92400E",
-          info:    "#1E40AF",
+          error:   "#FF6B6B",
+          success: "#40C057",
+          warning: "#FFD43B",
+          info:    "#4DABF7",
         },
       },
       fontFamily: {
@@ -102,11 +78,11 @@ module.exports = {
         "arabic-md":  ["20px", { lineHeight: "34px", fontWeight: "400" }],
       },
       boxShadow: {
-        card:    "0 1px 3px rgba(6, 78, 59, 0.08), 0 1px 2px rgba(6, 78, 59, 0.04)",
-        "card-hover": "0 4px 12px rgba(6, 78, 59, 0.12)",
-        verse:   "0 2px 8px rgba(84, 22, 27, 0.10)",
-        gold:    "0 0 0 2px rgba(227, 197, 103, 0.40)",
-      },
+          card:    "0 4px 16px rgba(2, 44, 34, 0.4), 0 2px 4px rgba(2, 44, 34, 0.2)",
+          "card-hover": "0 8px 24px rgba(2, 44, 34, 0.5)",
+          verse:   "0 4px 12px rgba(212, 175, 55, 0.2)",
+          gold:    "0 0 0 2px rgba(212, 175, 55, 0.40)",
+        },
     },
   },
   plugins: [],

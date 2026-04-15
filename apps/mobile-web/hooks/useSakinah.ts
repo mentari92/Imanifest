@@ -15,23 +15,41 @@ interface Surah {
   versesCount: number;
 }
 
+interface Ambiance {
+  id: string;
+  name: string;
+  icon: string;
+  url: string;
+}
+
 interface UseSakinahReturn {
   reciters: Reciter[];
   surahs: Surah[];
+  ambiances: Ambiance[];
   selectedReciter: Reciter | null;
   selectedSurah: Surah | null;
+  selectedAmbiance: Ambiance | null;
   audioUrl: string | null;
   isLoading: boolean;
   error: string | null;
   selectReciter: (reciter: Reciter) => void;
   selectSurah: (surah: Surah) => void;
+  selectAmbiance: (ambiance: Ambiance) => void;
 }
+
+const AMBIANCE_PRESETS: Ambiance[] = [
+  { id: "zamzam", name: "Zamzam Flow", icon: "💧", url: "https://www.soundjay.com/nature/river-1.mp3" },
+  { id: "rain", name: "Rain of Sakinah", icon: "🌧️", url: "https://www.soundjay.com/nature/rain-07.mp3" },
+  { id: "birds", name: "Garden of Peace", icon: "🐦", url: "https://www.soundjay.com/nature/birds-1.mp3" },
+  { id: "tafakkur", name: "Deep Tafakkur Pad", icon: "✨", url: "https://www.soundjay.com/misc/ambient-1.mp3" },
+];
 
 export function useSakinah(): UseSakinahReturn {
   const [reciters, setReciters] = useState<Reciter[]>([]);
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [selectedReciter, setSelectedReciter] = useState<Reciter | null>(null);
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
+  const [selectedAmbiance, setSelectedAmbiance] = useState<Ambiance | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,15 +119,22 @@ export function useSakinah(): UseSakinahReturn {
     [selectedReciter, loadAudio],
   );
 
+  const selectAmbiance = useCallback((ambiance: Ambiance) => {
+    setSelectedAmbiance(ambiance);
+  }, []);
+
   return {
     reciters,
     surahs,
+    ambiances: AMBIANCE_PRESETS,
     selectedReciter,
     selectedSurah,
+    selectedAmbiance,
     audioUrl,
     isLoading,
     error,
     selectReciter,
     selectSurah,
+    selectAmbiance,
   };
 }

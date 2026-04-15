@@ -14,8 +14,18 @@ let activeSound: Audio.Sound | null = null;
 let activeSoundUri: string | null = null;
 let loadGeneration = 0; // Guards against rapid-switch race conditions
 
+// Configure audio for better web/mobile stability
+Audio.setAudioModeAsync({
+  allowsRecordingIOS: false,
+  staysActiveInBackground: true,
+  playsInSilentModeIOS: true,
+  shouldDuckAndroid: true,
+  playThroughEarpieceAndroid: false,
+}).catch(err => console.error("[Audio] Failed to set mode:", err));
+
 function unloadActiveSound() {
   if (activeSound) {
+    activeSound.stopAsync().catch(() => {});
     activeSound.unloadAsync().catch(() => {});
     activeSound = null;
     activeSoundUri = null;
@@ -107,7 +117,8 @@ export function AudioPlayer({ audioUrl, surahName, reciterName }: AudioPlayerPro
       activeSoundUri = url;
       setIsAudioLoading(false);
       setIsPlaying(true);
-    } catch {
+    } catch (error) {
+       console.error("[AudioPlayer] Load failed for:", url, error);
       if (thisGeneration === loadGeneration) {
         setIsAudioLoading(false);
         setAudioError("Unable to load audio. Please try another surah or reciter.");
@@ -202,7 +213,7 @@ export function AudioPlayer({ audioUrl, surahName, reciterName }: AudioPlayerPro
   const progress = duration > 0 ? position / duration : 0;
 
   return (
-    <View className="bg-surface rounded-3xl px-5 py-6 border border-border">
+    <View className="bg-surface-card rounded-[24px] px-5 py-6 border border-border mt-2 shadow-card backdrop-blur-md">
       {/* Surah & Reciter Info */}
       <Text className="font-display text-display-md text-primary text-center">
         {surahName}
@@ -256,7 +267,7 @@ export function AudioPlayer({ audioUrl, surahName, reciterName }: AudioPlayerPro
       <View className="flex-row items-center justify-center mt-4 gap-4">
         {/* Restart */}
         <TouchableOpacity onPress={handleRestart} disabled={!activeSound} className="p-3">
-          <RotateCcw size={20} color="#064E3B" />
+          <RotateCcw size={20} color="#1A1829" />
         </TouchableOpacity>
 
         {/* Play / Pause */}
@@ -266,7 +277,7 @@ export function AudioPlayer({ audioUrl, surahName, reciterName }: AudioPlayerPro
           className="w-16 h-16 bg-primary rounded-full items-center justify-center active:opacity-80 disabled:opacity-50"
         >
           {isAudioLoading || isBuffering ? (
-            <ActivityIndicator color="#E3C567" />
+            <ActivityIndicator color="#D4AF37" />
           ) : isPlaying ? (
             <Pause size={28} color="#FFFFFF" />
           ) : (

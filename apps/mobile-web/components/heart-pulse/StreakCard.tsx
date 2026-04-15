@@ -21,11 +21,11 @@ export function StreakCard({ streakCount, loading }: StreakCardProps) {
 
   if (streakCount === 0) {
     return (
-      <View className="mt-4 bg-surface rounded-2xl px-5 py-4 flex-row items-center border border-border">
-        <Flame size={24} color="#78716C" />
+      <View className="mt-4 bg-primary/10 rounded-2xl px-5 py-4 flex-row items-center border border-primary/20">
+        <Flame size={24} color="#D4AF37" />
         <View className="ml-3">
-          <Text className="font-sans text-body-md text-secondary">
-            Mulai streak harianmu!
+          <Text className="font-sans text-body-md text-primary font-bold">
+            Start your daily streak!
           </Text>
         </View>
       </View>
@@ -37,7 +37,7 @@ export function StreakCard({ streakCount, loading }: StreakCardProps) {
       <Flame size={24} color="#E3C567" />
       <View className="ml-3">
         <Text className="font-sans text-body-sm text-highlight">
-          🔥 {streakCount} hari berturut-turut
+          🔥 {streakCount} day streak
         </Text>
       </View>
     </View>

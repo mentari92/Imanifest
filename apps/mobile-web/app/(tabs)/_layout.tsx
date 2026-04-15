@@ -5,36 +5,45 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#064E3B",
-        tabBarInactiveTintColor: "#78716C",
+        tabBarActiveTintColor: "#D4AF37", // Gold
+        tabBarInactiveTintColor: "#94A3B8", // Slate 400
         tabBarStyle: {
-          backgroundColor: "#F8FAFC",
-          borderTopColor: "#F1F5F0",
+          backgroundColor: "rgba(2, 44, 34, 0.9)",
+          borderTopColor: "rgba(212, 175, 55, 0.2)",
+          height: 64,
+          paddingBottom: 8,
         },
         tabBarLabelStyle: {
           fontFamily: "Lora-Regular",
-          fontSize: 11,
+          fontSize: 10,
         },
         headerStyle: {
-          backgroundColor: "#F8FAFC",
+          backgroundColor: "#022C22",
         },
-        headerTintColor: "#1C1917",
+        headerTintColor: "#F8FAFC",
         headerTitleStyle: {
           fontFamily: "PlayfairDisplay-Bold",
         },
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="index"
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="heartpulse"
         options={{
-          title: "ImanSync",
+          title: "HeartPulse",
+          tabBarIcon: ({ color, size }) => <Mic size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="niyyah-board"
+        options={{
+          title: "Niyyah Board",
           tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} />,
         }}
       />
@@ -46,16 +55,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="heartpulse"
-        options={{
-          title: "HeartPulse",
-          tabBarIcon: ({ color, size }) => <Mic size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="sakinah"
         options={{
-          title: "SakinahStream",
+          title: "Sakinah Hub",
           tabBarIcon: ({ color, size }) => <Headphones size={size} color={color} />,
         }}
       />

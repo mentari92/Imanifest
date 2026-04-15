@@ -49,12 +49,14 @@ export default function DuaToDoScreen() {
   // Empty — no manifestationId provided
   return (
     <View className="flex-1 bg-background px-screen-x py-screen-y items-center justify-center">
-      <Sparkles size={48} color={colors.primary} />
-      <Text className="font-display text-display-lg text-primary mt-4">
-        Dua To-Do
+      <View className="bg-surface-card rounded-full p-6 border border-border shadow-card backdrop-blur-md">
+        <Sparkles size={48} color="#D4AF37" />
+      </View>
+      <Text className="font-display text-display-lg text-primary mt-6">
+        Dua-to-Do
       </Text>
-      <Text className="font-sans text-body-md text-ink-secondary mt-2 text-center">
-        Analyze your intention in ImanSync first, then generate an action plan here.
+      <Text className="font-sans text-body-md text-ink-secondary mt-2 text-center max-w-[80%]">
+        Please plant a Niyyah in the Niyyah Board first to generate your actionable manifestation roadmap.
       </Text>
     </View>
   );

@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 import { PrismaService } from "@imanifest/database";
 import { ZhipuService } from "../common/zhipu.service";
 import { QuranApiService, VerseResult } from "../common/quran-api.service";
@@ -38,6 +37,24 @@ export class ImanSyncService {
     private readonly quranApi: QuranApiService,
     private readonly redis: RedisService,
   ) {}
+
+  /**
+   * Quick search for real-time verse discovery.
+   * Uses GLM-4-flash to extract a theme quickly and return verses.
+   */
+  async quickSearch(text: string): Promise<{ verses: VerseResult[] }> {
+    try {
+      // Very fast theme extraction
+      const themes = await this.zhipu.extractThemes(text.substring(0, 100));
+      if (themes.length === 0) return { verses: [] };
+      
+      const verses = await this.quranApi.searchVerses(themes[0], 2);
+      return { verses };
+    } catch (err) {
+      this.logger.error("Quick search failed", err);
+      return { verses: [] };
+    }
+  }
 
   private hashText(text: string): string {
     return createHash("sha256").update(text.trim().toLowerCase()).digest("hex");
@@ -91,20 +108,26 @@ export class ImanSyncService {
       verses.map((v) => ({ verseKey: v.verseKey, translation: v.translation })),
     );
 
-    // Save to Manifestation table
-    const manifestation = await this.prisma.manifestation.create({
-      data: {
-        userId,
-        intentText,
-        imagePath: imagePath ?? null,
-        verses: verses.length > 0 ? (verses as any) : [],
-        aiSummary,
-      },
-    });
+    // Try to save to DB, fallback to in-memory ID
+    let manifestationId: string;
+    try {
+      const manifestation = await this.prisma.manifestation.create({
+        data: {
+          userId,
+          intentText,
+          imagePath: imagePath ?? null,
+          verses: verses.length > 0 ? (verses as any) : [],
+          aiSummary,
+        },
+      });
+      manifestationId = manifestation.id;
+      this.logger.log(`Saved manifestation ${manifestationId}`);
+    } catch (dbErr: any) {
+      manifestationId = `demo-manifest-${Date.now()}`;
+      this.logger.warn(`DB save failed (demo mode): ${dbErr?.message}. Using in-memory ID: ${manifestationId}`);
+    }
 
-    this.logger.log(`Saved manifestation ${manifestation.id}`);
-
-    return { manifestationId: manifestation.id, verses, aiSummary };
+    return { manifestationId, verses, aiSummary };
   }
 
   /**

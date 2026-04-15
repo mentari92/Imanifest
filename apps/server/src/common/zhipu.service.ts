@@ -8,13 +8,15 @@ import axios from "axios";
 @Injectable()
 export class ZhipuService {
   private readonly logger = new Logger(ZhipuService.name);
-  private readonly apiKey = process.env.ZHIPU_API_KEY || "";
+  private readonly zhipuApiKey = process.env.ZHIPU_API_KEY || "";
+  private readonly openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
   private readonly baseUrl = "https://open.bigmodel.cn/api/paas/v4";
+  private readonly openRouterUrl = "https://openrouter.ai/api/v1/chat/completions";
 
   private static readonly GLM_BASE_HEADERS: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  private static readonly THEME_FALLBACK = ["tawakkul", "sabr", "shukr"];
+  private static readonly THEME_FALLBACK = ["patience", "gratitude", "trust in God"];
   private static readonly TASK_FALLBACK = [
     "Pray all 5 daily prayers on time",
     "Read Quran for 10 minutes daily",
@@ -109,6 +111,45 @@ Do not include any explanation or extra text.`;
   }
 
   /**
+   * Generate a deep spiritual insight from a reflection.
+   * Includes Quranic reference, Tafsir summary, and scientific explanation.
+   */
+  async generateReflectionInsight(
+    transcriptText: string,
+    sentiment: string,
+  ): Promise<{ spiritual: string; tafsir: string; scientific: string }> {
+    const systemPrompt = `You are a warm Islamic counselor combining Quranic wisdom with modern science.
+Analyze the user's reflection: "${transcriptText}" (Detected emotion: ${sentiment}).
+Provide:
+1. "spiritual": A warm, empathetic guidance message with one specific Quranic verse citation (Surah:Verse).
+2. "tafsir": A simplified, profound Tafsir (exegesis) summary of that verse.
+3. "scientific": A brief scientific explanation of how the spiritual practice (e.g., patience, gratitude, prayer) helps psychological or physical well-being.
+
+Return ONLY a valid JSON object with keys "spiritual", "tafsir", and "scientific". English only. 
+Example: {"spiritual": "...", "tafsir": "...", "scientific": "..."}`;
+
+    try {
+      const response = await this.callGLM5(systemPrompt, transcriptText);
+      const parsed = this.parseJSONResponse<{ spiritual: string; tafsir: string; scientific: string }>(response);
+      if (parsed?.spiritual && parsed?.scientific) {
+        return parsed;
+      }
+      return {
+        spiritual: "Your heart finds rest in the remembrance of Allah.",
+        tafsir: "The scholars say that sincere reflection is the path to inner clarity.",
+        scientific: "Research shows that mindfulness and spiritual reflection reduce cortisol levels and improve mental health.",
+      };
+    } catch (error) {
+      this.logger.error("Failed to generate reflection insight", error);
+      return {
+        spiritual: "May Allah grant your heart peace.",
+        tafsir: "Reflecting on one's state is a form of ibadah that brings tranquility.",
+        scientific: "Neural studies suggest that focused prayer or meditation activates the frontal lobes associated with calm.",
+      };
+    }
+  }
+
+  /**
    * Analyze sentiment of a reflection text using GLM-5.
    */
   async analyzeSentiment(
@@ -168,27 +209,60 @@ Do not include any explanation or extra text.`;
     systemPrompt: string,
     userMessage: string,
   ): Promise<string> {
-    const response = await axios.post(
-      `${this.baseUrl}/chat/completions`,
-      {
-        model: "glm-4-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      },
-      {
-        headers: {
-          ...ZhipuService.GLM_BASE_HEADERS,
-          Authorization: `Bearer ${this.apiKey}`,
+    try {
+      this.logger.log("Attempting Zhipu GLM-5 Request");
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: "glm-4.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.2,
+          max_tokens: 1500,
         },
-        timeout: 15000,
-      },
-    );
+        {
+          headers: {
+            ...ZhipuService.GLM_BASE_HEADERS,
+            Authorization: `Bearer ${this.zhipuApiKey}`,
+          },
+          timeout: 60000,
+        },
+      );
+      return response.data?.choices?.[0]?.message?.content || "";
 
-    return response.data?.choices?.[0]?.message?.content || "";
+    } catch (error: any) {
+      if (error.response?.data) {
+        this.logger.error(`Zhipu API Error Response: ${JSON.stringify(error.response.data)}`);
+      }
+      if (!this.openRouterApiKey) {
+        this.logger.error("Zhipu AI Failed and no OpenRouter Fallback configured.");
+        throw error;
+      }
+      this.logger.warn("Zhipu AI Failed. Falling back to OpenRouter.");
+      const fallbackResponse = await axios.post(
+        this.openRouterUrl,
+        {
+          model: "google/gemma-4-26b-a4b",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.7,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.openRouterApiKey}`,
+            "HTTP-Referer": "https://imanifestapp.com",
+            "X-Title": "IManifestApp",
+          },
+          timeout: 15000,
+        },
+      );
+      return fallbackResponse.data?.choices?.[0]?.message?.content || "";
+    }
   }
 
   /**
@@ -205,36 +279,74 @@ Return ONLY a valid JSON array of English keywords.
 Example: ["tawakkul","sabr","shukr"]
 Do not include any explanation or extra text.`;
 
-    const response = await axios.post(
-      `${this.baseUrl}/chat/completions`,
-      {
-        model: "glm-4v-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userMessage },
-              {
-                type: "image_url",
-                image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-              },
-            ],
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      },
-      {
-        headers: {
-          ...ZhipuService.GLM_BASE_HEADERS,
-          Authorization: `Bearer ${this.apiKey}`,
+    try {
+      this.logger.log("Attempting Zhipu GLM-5V Request");
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: "glm-4v-plus",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: userMessage },
+                {
+                  type: "image_url",
+                  image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+                },
+              ],
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1500,
         },
-        timeout: 20000,
-      },
-    );
+        {
+          headers: {
+            ...ZhipuService.GLM_BASE_HEADERS,
+            Authorization: `Bearer ${this.zhipuApiKey}`,
+          },
+          timeout: 20000,
+        },
+      );
+      return response.data?.choices?.[0]?.message?.content || "";
 
-    return response.data?.choices?.[0]?.message?.content || "";
+    } catch (error) {
+      if (!this.openRouterApiKey) {
+        this.logger.error("Zhipu Vision AI Failed and no OpenRouter Fallback configured.");
+        throw error;
+      }
+      this.logger.warn("Zhipu Vision Failed. Falling back to OpenRouter.");
+      const fallbackResponse = await axios.post(
+        this.openRouterUrl,
+        {
+          model: "google/gemma-4-26b-a4b",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: userMessage },
+                {
+                  type: "image_url",
+                  image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.openRouterApiKey}`,
+            "HTTP-Referer": "https://imanifestapp.com",
+            "X-Title": "IManifestApp",
+          },
+          timeout: 25000,
+        },
+      );
+      return fallbackResponse.data?.choices?.[0]?.message?.content || "";
+    }
   }
 
   /**
@@ -243,13 +355,21 @@ Do not include any explanation or extra text.`;
    */
   private parseJSONResponse<T>(text: string): T | null {
     try {
-      const cleaned = text
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      return JSON.parse(cleaned) as T;
-    } catch {
-      this.logger.warn(`Failed to parse JSON response: ${text.substring(0, 100)}...`);
+      // Find the first occurrence of [ or {
+      const startIndex = text.search(/[\[\{]/);
+      if (startIndex === -1) return null;
+      
+      // Find the last occurrence of ] or }
+      const lastBracket = text.lastIndexOf("]");
+      const lastBrace = text.lastIndexOf("}");
+      const endIndex = Math.max(lastBracket, lastBrace);
+      
+      if (endIndex === -1 || endIndex < startIndex) return null;
+      
+      const jsonStr = text.substring(startIndex, endIndex + 1);
+      return JSON.parse(jsonStr) as T;
+    } catch (error: any) {
+      this.logger.warn(`Failed to parse JSON response: ${error.message}`);
       return null;
     }
   }

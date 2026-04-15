@@ -11,24 +11,32 @@ export function VerseCard({ verse }: VerseCardProps) {
   const [tafsirOpen, setTafsirOpen] = useState(false);
 
   return (
-    <View className="bg-surface rounded-verse p-card-p border-l-2 border-primary shadow-verse">
-      {/* Verse key */}
-      <Text className="font-mono text-mono text-ink-secondary mb-2">
-        {verse.verseKey}
-      </Text>
+    <View className="bg-surface-card rounded-[24px] p-6 border border-white/10 shadow-verse overflow-hidden">
+      {/* Decorative Aura */}
+      <View className="absolute -top-10 -left-10 w-20 h-20 bg-accent/5 rounded-full blur-3xl" />
+      
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="bg-accent/10 px-3 py-1 rounded-full">
+          <Text className="font-mono text-[10px] text-accent font-bold tracking-widest">
+            {verse.verseKey}
+          </Text>
+        </View>
+      </View>
 
-      {/* Arabic text — right-to-left */}
+      {/* Arabic text — larger and right-to-left */}
       <Text
-        className="font-arabic text-[26px] leading-[1.8] text-primary text-right mb-3"
+        className="font-arabic text-[30px] leading-[1.8] text-ink-primary text-right mb-5"
         style={{ writingDirection: "rtl" }}
       >
         {verse.arabicText}
       </Text>
 
-      {/* English translation */}
-      <Text className="font-sans text-body-lg text-text-primary leading-[1.6]">
-        {verse.translation}
-      </Text>
+      {/* English translation with nice quote styling */}
+      <View className="border-l-2 border-accent/30 pl-4">
+        <Text className="font-sans text-body-lg text-ink-primary leading-[1.7] italic">
+          "{verse.translation}"
+        </Text>
+      </View>
 
       {/* Collapsible tafsir */}
       {verse.tafsirSnippet && (

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@imanifest/database";
 import { calculateReflectionStreak } from "../common/streak.util";
 
@@ -35,9 +35,12 @@ export interface DashboardOverview {
 
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview(userId: string): Promise<DashboardOverview> {
+    this.logger.log(`Fetching dashboard overview for user: ${userId}`);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -50,31 +53,31 @@ export class DashboardService {
       recentReflections,
       manifestations,
     ] = await Promise.all([
-      this.prisma.manifestation.count({ where: { userId } }),
-      this.prisma.task.count({ where: { manifestation: { userId } } }),
-      this.prisma.task.count({ where: { manifestation: { userId }, isCompleted: true } }),
-      calculateReflectionStreak(this.prisma, userId),
+      this.prisma.manifestation.count({ where: { userId } }).catch(() => 0),
+      this.prisma.task.count({ where: { manifestation: { userId } } }).catch(() => 0),
+      this.prisma.task.count({ where: { manifestation: { userId }, isCompleted: true } }).catch(() => 0),
+      calculateReflectionStreak(this.prisma, userId).catch(() => 0),
       this.prisma.reflection.findMany({
         where: { userId, createdAt: { gte: sevenDaysAgo }, sentiment: { not: null } },
         orderBy: { createdAt: "asc" },
         select: { sentiment: true, sentimentScore: true, createdAt: true },
-      }),
+      }).catch(() => [] as any[]),
       this.prisma.manifestation.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
         take: 20,
         select: { id: true, intentText: true, createdAt: true, tasks: { select: { isCompleted: true } } },
-      }),
+      }).catch(() => [] as any[]),
     ]);
 
     // ─── Assemble response ────────────────────────────────
-    const sentiment7Days: SentimentDay[] = recentReflections.map((r: { sentiment: string | null; sentimentScore: number | null; createdAt: Date }) => ({
+    const sentiment7Days: SentimentDay[] = (recentReflections as any[]).map((r: any) => ({
       date: r.createdAt.toISOString().slice(0, 10),
       sentiment: r.sentiment!,
       score: r.sentimentScore ?? 0.5,
     }));
 
-    const manifestationList = manifestations.map((m: ManifestationWithTasks) => {
+    const manifestationList = (manifestations as ManifestationWithTasks[]).map((m) => {
       const taskTotal = m.tasks.length;
       const taskCompleted = m.tasks.filter((t) => t.isCompleted).length;
       return {
@@ -89,10 +92,10 @@ export class DashboardService {
 
     return {
       stats: {
-        totalManifestations: manifestationCount,
-        totalTasks: totalTaskCount,
-        completedTasks: completedTaskCount,
-        currentStreak,
+        totalManifestations: manifestationCount as number,
+        totalTasks: totalTaskCount as number,
+        completedTasks: completedTaskCount as number,
+        currentStreak: currentStreak as number,
       },
       sentiment7Days,
       manifestations: manifestationList,

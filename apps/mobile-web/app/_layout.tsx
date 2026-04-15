@@ -1,5 +1,5 @@
 import "../global.css";
-import { Stack, Redirect } from "expo-router";
+import { Stack, Redirect, useSegments } from "expo-router";
 import { Component } from "react";
 import { useFonts } from "expo-font";
 import {
@@ -33,19 +33,22 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: st
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
+  const segments = useSegments();
+  const inAuthGroup = segments[0] === "auth";
 
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#064E3B" />
-        <Text className="mt-2 text-ink-secondary font-sans">Loading...</Text>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text className="mt-2 text-ink-secondary font-sans">Connecting to Divine wisdom...</Text>
       </View>
     );
   }
 
-  if (!user) {
-    return <Redirect href="/auth" />;
+  // Completely bypass auth screen for Demo
+  if (inAuthGroup) {
+    return <Redirect href="/" />;
   }
 
   return <>{children}</>;
@@ -64,7 +67,7 @@ export default function RootLayout() {
   if (!fontsLoaded) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#064E3B" />
+        <ActivityIndicator size="large" color="#D4AF37" />
         <Text className="mt-2 text-ink-secondary font-sans">Loading fonts...</Text>
       </View>
     );
@@ -74,13 +77,13 @@ export default function RootLayout() {
     <ErrorBoundary>
     <AuthProvider>
       <AuthGate>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: "#F8FAFC" },
-            headerTintColor: "#1C1917",
+            headerStyle: { backgroundColor: "transparent" },
+            headerTintColor: "#F8FAFC",
             headerTitleStyle: { fontFamily: "PlayfairDisplay-Bold" },
-            contentStyle: { backgroundColor: "#F8FAFC" },
+            contentStyle: { backgroundColor: "transparent" },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

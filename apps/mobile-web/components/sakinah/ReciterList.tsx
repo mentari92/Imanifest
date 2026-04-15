@@ -22,8 +22,8 @@ export function ReciterList({ reciters, selectedReciter, onSelect }: ReciterList
       renderItem={({ item }) => (
         <TouchableOpacity
           onPress={() => onSelect(item)}
-          className={`px-4 py-3 rounded-xl mb-1 ${
-            selectedReciter?.id === item.id ? "bg-primary/10" : "bg-surface"
+          className={`px-4 py-3 rounded-[16px] mb-2 border border-border backdrop-blur-md shadow-sm transition-all ${
+            selectedReciter?.id === item.id ? "bg-accent/20 border-accent/40" : "bg-surface-input"
           }`}
         >
           <Text
