@@ -1,8 +1,8 @@
 # Project Brief: ImanifestApp – AI-Powered Spiritual Productivity Platform
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Status:** Final — Ready for Development  
-**Stack:** Turborepo + Expo (mobile-web) + NestJS + PostgreSQL + Zhipu GLM-5 + Quran Foundation API
+**Stack:** Turborepo + Expo (mobile-web) + NestJS + PostgreSQL + Zhipu GLM-5 + Quran.com API
 
 ---
 
@@ -20,44 +20,98 @@ ImanifestApp dibangun untuk memotivasi diri sendiri—mendapatkan ketenangan lew
 
 ---
 
-## Technical Solution
+## Core User Journey — The "Spiritual Recovery" Flow
 
-A spiritual productivity platform with 4 core features:
+Semua 4 fitur saling terhubung dalam satu alur linier yang membimbing pengguna dari titik terrendah menuju ketenangan dan tindakan nyata:
 
-### Feature 1: Niyyah & Syukur Board (ImanSync)
-- **Konsep:** Evolusi dari Vision Board. Pengguna memasukkan foto impian (Niyyah) atau masalah mereka. Sebelum bisa melihat progres hariannya, pengguna diwajibkan menulis 3 hal yang disyukuri hari itu (Gratitude Journal).
-- **Proses:** AI memvalidasi niat tersebut dengan menyuguhkan ayat-ayat API Al-Qur'an yang relevan di halaman muka (Dipersonalisasi).
+```
+Dashboard → Qalb → Imanifest → Dua-to-Do → Tafakkur Hub
+```
 
-### Feature 2: Dua-to-Do & Manifestation Tracker
-- **Konsep:** AI mengubah masalah atau impian pengguna dari "Niyyah Board" menjadi *to-do list* yang terarah secara fisik dan spiritual.
-- **Progres & Waktu Mustajab:** *To-do list* ini meminta pengguna untuk berdoa/membaca ayat di "Waktu Mustajab" (misal: 1/3 malam terakhir). 
-- **Manifestation Tracker:** Pengguna bisa melacak jika di bulan-bulan mendatang impian mereka seperti "$10.000/bulannya" sudah terwujud, dan sistem akan menyimpan ini sebagai riwayat perjalanan spiritual mereka.
+### Step 1 — Dashboard
+Pengguna membuka app dan melihat 4 fitur utama: **Qalb**, **Imanifest**, **Dua-to-Do**, dan **Tafakkur**. Dashboard juga menampilkan waktu shalat aktif, streak harian, dan progres manifestasi.
 
-### Feature 3: HeartPulse (Voice Spiritual Companion)
-- **Konsep:** Fitur interaktif dua arah. Jika pengguna sedang banyak beban pikiran, mereka bebas **berbicara (curhat lewat suara)** ke dalam aplikasi.
-- **Respons 2 Lapis AI:** 
-  1. AI membalas dengan mengutip langsung sabda dari **API Hadis dan Al-Qur'an (quran.com)**.
-  2. Selain ayat/hadis, AI memberikan **penjelasan yang logis dan solutif (masuk akal)** tentang bagaimana mengimplementasikan ayat tersebut dalam konteks permasalahan pengguna hari itu.
+### Step 2 — Qalb (Spiritual First Aid)
+Pengguna bercerita tentang permasalahan hidupnya — bisa lewat **kirim suara** atau **mengetik teks**. AI berperan sebagai pendengar empatik dan membalas dengan:
+1. **Kutipan dari Quran.com** — ayat relevan + tafsir + hadis yang sesuai konteks masalah
+2. **Penjelasan logis & solutif** — bagaimana mengimplementasikan pesan spiritual tersebut dalam kehidupan nyata
 
-### Feature 4: SakinahStream (Guided Tafakkur Audio)
-- **Konsep:** Integrasi dari Audio API Al-Qur'an namun diformat mirip audio hipnosis/relaksasi aplikasi sekuler.
-- **Proses:** Memadukan lantunan murottal yang menenangkan dengan panduan *Tafakkur* (perenungan) untuk menenangkan pikiran yang sedang *overthinking*.
+Setelah mendapat respons AI, terdapat tombol **"Plan with Imanifest"** yang mengarahkan user agar tidak larut dalam masalah dan mulai membangun visi ke depan.
 
-### Feature 5: Share the Light (Social Impact)
-- **Konsep:** Saat AI memberikan jawaban ayat Al-Qur'an atau nasihat ajaib yang menenangkan hati pengguna, ada tombol **Bagikan (Share)**.
-- **Proses:** Fitur ini membuat tangkapan layar e-card cantik (berisi ayat API dan solusi) agar pengguna bisa membagikannya ke teman yang juga sedang ada masalah, mengajak mereka untuk kembali bergantung pada Allah.
+### Step 3 — Imanifest (Vision & Intention)
+Pengguna diminta untuk menuliskan **apa yang ingin diwujudkan** — supaya tidak larut dalam keterpurukan, melainkan fokus pada apa yang ingin dicapai. Bisa lewat suara atau menulis. Selain itu, pengguna juga menuliskan **3 hal yang disyukuri hari ini** sebagai Gratitude Journal.
+
+Setelah mengisi niat dan syukur, terdapat tombol **"Manifest & Start Dua-to-Do"** yang mengarahkan ke aksi nyata.
+
+### Step 4 — Dua-to-Do (Actionable Roadmap)
+AI mengubah niat dari Imanifest menjadi **to-do list terarah** yang menggabungkan tindakan fisik dan spiritual. Termasuk di dalamnya:
+- Membaca/mendengarkan Al-Qur'an dari **Quran.com**
+- Amalan waktu mustajab (Dhuha, Tahajjud, dll.)
+- Aksi duniawi konkret (perbarui CV, kirim lamaran, dsb.)
+
+Setelah menyelesaikan to-do, terdapat tombol **"Begin Tafakkur"** untuk menutup hari dengan kontemplasi.
+
+### Step 5 — Tafakkur Hub (Contemplation & Reconnection)
+Pengguna membaca dan mendengarkan Al-Qur'an untuk **menenangkan hati dan berkontemplasi diri**. Fitur ini membangun kesadaran bahwa **Allah selalu bersama mereka** di setiap langkah. Tersedia:
+- Murottal dari reciter pilihan (Quran.com Audio API)
+- Ayat untuk dibaca & direfleksikan (Read & Reflect)
+- Daily Dhikr rotator
+- Nature Sounds untuk fokus
 
 ---
 
-## Core User Journey (The "Spiritual Recovery" Flow)
+## The 4 Core Features
 
-Bagaimana semua fitur ini bersatu? Berikut adalah alur utama (MVP Flow) yang akan dilalui pengguna saat menggunakan ImanifestApp:
+### Feature 1: Qalb — Voice Spiritual Companion
+**Route:** `/qalb` | **File:** `app/(tabs)/qalb.tsx` + `app/qalb-result.tsx`
 
-1. **Trigger (The Problem):** Pengguna sedang sedih/jatuh. (Contoh: *"Aku baru saja kehilangan pekerjaan, aku merasa hancur."*)
-2. **Spiritual First Aid (HeartPulse):** Pengguna curhat ke aplikasi (lewat suara/teks). AI bertindak sebagai pendengar yang empati, langsung memberikan kutipan API Al-Qur'an dan menasihati pengguna untuk tetap ber-Husnudzon (berprasangka baik) bahwa Allah sedang menyiapkan jalan ganti yang lebih baik. Keyakinan pengguna pulih.
-3. **Actionable Roadmap (Dua-to-Do):** Setelah tenang, AI memberikan *to-do list* praktis. (Contoh: *"1. Perbarui CV besok, 2. Salat Dhuha, 3. Baca doa minta rezeki [API Al-Qur'an/Hadis]"*).
-4. **Manifesting (Niyyah Board):** Pengguna diminta menulis manifestasinya. (Contoh: *"Mendapatkan pekerjaan dengan gaji $10.000/bulan"*) beserta rasa syukur hari itu.
-5. **Tracking & Realization:** Setiap hari pengguna menceklis *to-do list* (Fisik & Spiritual). Beberapa bulan kemudian, saat mereka berhasil mendapatkannya, mereka menekan tombol **"Realized"** di Tracker. Impian terwujud berkat perpaduan ikhtiar dan tawakkal!
+- Pengguna curhat lewat **suara** (Web Speech API) atau **teks**
+- AI membalas dengan respons 2 lapis:
+  1. Kutipan ayat Al-Qur'an, tafsir, dan hadis dari **Quran Foundation Content API**
+  2. Penjelasan logis dan solutif yang dipersonalisasi
+- Tombol "Plan with Imanifest" → `/imanifest`
+- Streak counter (berapa hari berturut-turut user refleksi)
+
+### Feature 2: Imanifest — Vision & Intention Board
+**Route:** `/imanifest` | **File:** `app/(tabs)/imanifest.tsx`
+
+- User menulis/merekam suara **niat/keinginan** yang ingin diwujudkan
+- User mengisi **3 hal yang disyukuri** hari ini (Gratitude Journal)
+- Visual inspiration board (upload foto impian)
+- AI memvalidasi niat dengan ayat Al-Qur'an yang relevan
+- Tombol "Manifest & Start Dua-to-Do" → `/dua-todo`
+
+### Feature 3: Dua-to-Do — Spiritual Action Roadmap
+**Route:** `/dua-todo` | **File:** `app/(tabs)/dua-todo.tsx`
+
+- AI menghasilkan to-do list dari niat di Imanifest
+- Setiap to-do mencakup amalan spiritual + aksi duniawi
+- Integrasi **Quran Foundation User API** untuk streak & goals
+- Tombol membaca Al-Qur'an langsung dari **Quran.com**
+- Tombol "Begin Tafakkur" → `/tafakkur`
+
+### Feature 4: Tafakkur Hub — Guided Quran Contemplation
+**Route:** `/tafakkur` | **File:** `app/(tabs)/tafakkur.tsx`
+
+- Streaming murottal dari **Quran Foundation Audio API**
+- Pilihan reciter (Mishary Rashid Alafasy, Abdur-Rahman as-Sudais, dll.)
+- Read & Reflect — ayat Arab + terjemahan + panduan tafakkur
+- Daily Dhikr rotator (Subhanallah, Alhamdulillah, Allahu Akbar)
+- Nature Sounds (Hujan, Hutan, Laut) untuk fokus kontemplasi
+
+---
+
+## Feature Navigation Map
+
+| From | CTA Button | To |
+|------|-----------|-----|
+| Dashboard | Tap "Qalb" card | `/qalb` |
+| Dashboard | Tap "Imanifest" card | `/imanifest` |
+| Dashboard | Tap "Dua-to-Do" card | `/dua-todo` |
+| Dashboard | Tap "Tafakkur" card | `/tafakkur` |
+| Qalb result | "Plan with Imanifest ✨" | `/imanifest` |
+| Imanifest | "Manifest & Start Dua-to-Do →" | `/dua-todo` |
+| Dua-to-Do | "Begin Tafakkur 🌿" | `/tafakkur` |
 
 ---
 
@@ -67,23 +121,25 @@ Bagaimana semua fitur ini bersatu? Berikut adalah alur utama (MVP Flow) yang aka
 
 **Secondary:** Non-Arab Muslims who need accessible tafsir and guidance in their language.
 
-**User persona:** Aisha, 26, marketing professional in Kuala Lumpur. Sets goals using Notion and Todoist. Wants to make her daily intentions more meaningful but finds generic Islamic apps too passive — just reading Quran without a system for acting on it.
+**User Persona:** Aisha, 26, marketing professional in Kuala Lumpur. Sets goals using Notion and Todoist. Wants to make her daily intentions more meaningful but finds generic Islamic apps too passive — just reading Quran without a system for acting on it.
 
 ---
 
 ## MVP Scope
 
-**Hackathon MVP (1-3 Days Scope):** Fokus pada "Vertical Slice" yang paling *wow* di mata juri, rilis dalam format Web App agar mudah didemokan.
-- Expo Web-Only untuk demo (mengurangi *bug* kompilasi iOS/Android).
-- Autentikasi kilat dengan Supabase Auth / Quran.com OAuth2.
-- **Gamifikasi Sederhana:** Menggunakan *Quran User API (Streak)*. Fitur "Syukur & Niyyah Board" di mana "Faith Score" bertambah saat user selesai *check-off* to-do list harian.
-- Imansync & Dua-to-Do: Menggunakan *prompt* AI statis yang langsung menembak API Al-Qur'an dan membuahkan *checklist* (Inti dari *Technical Requirements*).
-- HeartPulse (Voice): Menggunakan API bawaan *browser* (Web Speech API) agar tidak perlu membuat *native audio recorder*, sehingga selesai dalam hitungan menit.
-- SakinahStream: Cukup 1 tombol "Play/Pause" untuk memutar surah penenang langsung dari URL *Quran Audio API* (bukan *playlist* rumit).
+**Hackathon MVP (Deadline: April 20, 2026) — Web App Demo:**
 
-**Out of scope (Post-Hackathon):**
-- Kompilasi Native iOS/Android (Tunda setelah menang/dapat dana).
-- Fitur sosial / komunitas.
+- Expo Web-Only untuk demo (reduce iOS/Android build bugs)
+- Auth: Supabase Auth / Quran.com OAuth2
+- **Qalb:** Web Speech API (browser built-in, no native recorder needed)
+- **Imanifest:** Static AI prompt → Quran Foundation Content API
+- **Dua-to-Do:** AI-generated checklist dari niat Imanifest + Quran.com integration
+- **Tafakkur:** 1 play/pause button → Quran Audio API streaming
+- **Gamification:** Quran User API streak + "Faith Score" saat checklist selesai
+
+**Out of Scope (Post-Hackathon):**
+- Native iOS/Android compilation
+- Social/community features
 - Push notifications
 - Premium tier / paywall
 - Custom recitation uploads
@@ -91,33 +147,18 @@ Bagaimana semua fitur ini bersatu? Berikut adalah alur utama (MVP Flow) yang aka
 
 ---
 
-## Business Model
-
-**Hackathon MVP — all features free.**
-
-Post-hackathon monetization options to explore:
-- Premium tier: deeper AI analysis, unlimited history, custom dua collections
-- B2B: white-label for mosques and Islamic organizations
-- Sponsorship: halal brands, Islamic finance apps
-
----
-
 ## Tech Stack (LOCKED)
 
-### Frontend — One codebase, three platforms
+### Frontend
 
-| Component | Technology | iOS | Android | Web |
-|-----------|-----------|-----|---------|-----|
-| Framework | Expo SDK 52 (React Native) | ✅ Native `.app` | ✅ Native `.apk` | ✅ Static HTML/CSS/JS |
-| Routing | Expo Router 4 | ✅ | ✅ | ✅ |
-| Styling | NativeWind v4 (Tailwind CSS) | ✅ | ✅ | ✅ |
-| Voice | Expo Audio | ✅ Microphone | ✅ Microphone | ⚠️ Web Audio API |
-| Image | Expo ImagePicker | ✅ Camera/Gallery | ✅ Camera/Gallery | ✅ File input |
-| Auth Token | Expo SecureStore | ✅ Keychain | ✅ Keystore | ⚠️ localStorage fallback |
-| Icons | Lucide React Native | ✅ | ✅ | ✅ |
-| Fonts | Google Fonts (Expo) | ✅ | ✅ | ✅ |
-
-> **Build commands:** `npx expo run:ios` · `npx expo run:android` · `npx expo export --platform web`
+| Component | Technology | Notes |
+|-----------|-----------|-------|
+| Framework | Expo SDK 55 (React Native) | Web-first for hackathon |
+| Routing | Expo Router 4 | File-based, `(tabs)` group |
+| Styling | Inline styles + Platform checks | Glassmorphism on web |
+| Voice | Web Speech API | Browser built-in |
+| Icons | Lucide React Native | LayoutGrid, Heart, Sparkles, etc. |
+| Fonts | Newsreader, Noto Serif, Plus Jakarta Sans, Amiri | Google Fonts via CSS |
 
 ### Backend
 
@@ -125,76 +166,44 @@ Post-hackathon monetization options to explore:
 |-----------|-----------|-------|
 | API Server | NestJS 10 + TypeScript strict | `apps/server` — port 3001 |
 | Database | PostgreSQL 16 + Prisma 6 | `packages/database` |
-| Cache | Redis via ioredis | Result caching + rate limiting |
-| AI (Vision + Text) | Zhipu AI GLM-5 / GLM-5V | Via `zhipuai` SDK |
-| Auth | OAuth2 — Login with Quran.com | Supabase Auth or Clerk |
-| Quran Content | Quran Foundation Content API | Tafsir, translation, search |
+| Cache | Redis via ioredis | TTL 1hr for Quran API responses |
+| AI | Zhipu AI GLM-5 / GLM-5V | Qalb + Imanifest responses |
+| Auth | OAuth2 — Login with Quran.com | Supabase Auth fallback |
+| Quran Content | Quran Foundation Content API | Tafsir, translation, verse search |
 | Quran User | Quran Foundation User API | Goals, streaks, reflections |
-| Quran Audio | Quran Foundation Audio API | Recitation streaming |
-
-### Infrastructure
-
-| Component | Technology | Notes |
-|-----------|-----------|-------|
-| Monorepo | Turborepo | pnpm workspaces |
-| Email (future) | Resend | Post-MVP |
-| Hosting | VPS Contabo or Railway | Backend + DB + Redis |
-| Web hosting | Any static host | CDN for web export |
+| Quran Audio | Quran Foundation Audio API | Recitation streaming (Tafakkur) |
 
 ---
 
-## Bazi Color System & Design Aesthetic
+## Design System
 
-Color decisions follow the founder's Bazi energy principles dipadukan dengan psikologi aplikasi spiritual modern.
+**Holographic Glassmorphism** — pastel gradients + frosted glass cards + subtle blur
 
-**Founder Profile:** Lahir di Ujung Pandang, 15 Desember 1992. Elemen dominan Air (musim dingin). Untuk menyeimbangkan energi besar ini, Bazi merekomendasikan **Api (Merah, Pink, Ungu)** untuk kehangatan, dan **Kayu (Hijau)** untuk pertumbuhan.
-
-**Strategi Warna (Modern Islamic x Bazi):**
-Kita tidak perlu menggunakan warna Hijau/Kuning tradisional yang terlihat usang. Kita sudah membuktikan di awal bahwa UI bergaya *Holographic Pastel* dari warna Bazi kamu justru membuat aplikasi ini terlihat sangat premium dan menenangkan!
-
-| Color | Name | Hex | Element | Usage |
-|-------|------|-----|---------|-------|
-| Primary | Starry Midnight / Deep Navy | #1A1829 | Water/Metal | Teks utama, elemen tegas agar tulisan mudah dibaca. |
-| Bazi Accent 1 | Soft Lavender (Ungu) | #E2DDF8 | Fire (Soft) | Komponen gradasi background untuk aura magis dan tenang. |
-| Bazi Accent 2 | Vivid Peach / Pink | #FFE4F2 | Fire | Highlights, elemen interaktif, tombol "Manifest". |
-| Islamic Anchor | Sage Green | #166534 | Wood | Warna *success*, ikon centang, tombol selesai. Mewakili kedamaian Islam sekaligus menyerap excess elemen Air Bazi. |
-| Surface | Frosted Glass | rgba(255,255,255,0.4) | Neutral | Kartu UI tembus pandang bergaya *Glassmorphism*. |
-
-**Kesimpulan:** Penggunaan warna Pink/Ungu asalkan didesain dengan format *pastel gradient* membuat aplikasi Islam terasa eksklusif, damai, dan personal untuk anak muda—sekaligus mematuhi panduan Bazi personal pendirinya.
+| Role | Name | Hex | Usage |
+|------|------|-----|-------|
+| Background | Lavender | #E2DDF8 | Top-left radial gradient blob |
+| Background | Blush | #FFE4F2 | Bottom-right radial gradient blob |
+| Primary text | Deep slate | #2f3338 | Headlines, body |
+| Accent green | Sage Green | #206c3a | CTAs, progress, Islamic anchor |
+| Dark green | Forest | #166534 | Shadows, borders |
+| Accent purple | Lavender | #605d71 | Secondary CTAs, Qalb theme |
+| Surface | Frosted Glass | rgba(255,255,255,0.45) | All cards |
+| Arabic font | Amiri | — | Quran verses |
+| Headline font | Newsreader | — | Italic display text |
 
 ---
 
-## Constraints
+## Hackathon Judging Criteria
 
-- Hackathon timeline: 48–72 hours for MVP
-- Solo or small team (2 developers max)
-- Zhipu AI API key required
-- Quran Foundation API key required
-- OAuth2 app registered on Quran.com
+| Criterion | Points | Our Strategy |
+|-----------|--------|-------------|
+| Impact on Quran Engagement | 30 | Core loop connects user's problems → Quranic reading + Tafakkur |
+| Product Quality & UX | 20 | Premium holographic glassmorphism design |
+| Technical Execution | 20 | Turborepo monorepo + NestJS strict TS + Expo |
+| Innovation & Creativity | 15 | Vision board + Islamic Tawakkul + AI guidance — first of its kind |
+| Effective Use of APIs | 15 | Content + User + Audio APIs across all 4 features |
 
----
-
-## Hackathon Requirements & Judging Criteria
-
-### 1. Technical Requirements
-Project MUST use at least one API from each category:
-- ✅ **Content API:** We use *Quran APIs, Tafsir APIs, Translation APIs, and Audio APIs*.
-- ✅ **User API:** We use *Streak Tracking, Post APIs (Reflection/HeartPulse), and Activity & Goals APIs (Dua-to-Do/Manifestation Tracker)*.
-
-### 2. Judging Rubric (100 Points Total)
-- **Impact on Quran Engagement (30 pts):** Our core loop directly connects a user's real-life problems/dreams to active Quranic reading and deep contextual reflection (Tafakkur).
-- **Product Quality & UX (20 pts):** A premium, dreamy holographic glassmorphism design that provides a very calm, welcoming, and modern aesthetic.
-- **Technical Execution (20 pts):** Clean monorepo (Turborepo), robust strict TypeScript backend (NestJS), and cross-platform frontend (Expo + NativeWind).
-- **Innovation & Creativity (15 pts):** Pioneering the intersection of modern "vision board/manifestation" productivity with authentic Islamic Tawakkul and AI guidance.
-- **Effective Use of APIs (15 pts):** Heavy and multifaceted reliance on Quran Foundation APIs for almost all core features (Audio, Goals, Streaks, Content, Tafsir).
-
-### 3. Submission Checklist (Deadline: April 20, 2026)
-- [ ] Project title & Team member names
-- [ ] Short description & Detailed explanation of the idea
-- [ ] Live demo or working app link
-- [ ] GitHub repository
-- [ ] 2-3 minute demo video
-- [ ] API usage description
+**Submission Deadline:** April 20, 2026
 
 ---
 
@@ -204,6 +213,5 @@ Project MUST use at least one API from each category:
 |------|-----------|
 | Quran Foundation API rate limits | Cache all responses in Redis (TTL 1 hour) |
 | GLM-5 response quality for Arabic context | Fine-tune prompt with Islamic scholar framing |
-| OAuth2 with Quran.com is complex to set up | Start with email auth as fallback for hackathon |
-| Expo web export limitations | Test web parity early, not at the end |
-| GLM-5V image analysis accuracy | Validate with test images before demo |
+| OAuth2 with Quran.com complexity | Start with email auth as hackathon fallback |
+| Web Speech API browser compatibility | Test on Chrome early; show text input fallback |
