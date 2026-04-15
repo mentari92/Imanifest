@@ -1,37 +1,93 @@
-import { View, Text, ScrollView, TouchableOpacity, Animated } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { 
-  Sparkles, 
-  CheckSquare, 
-  Heart, 
-  Headphones, 
-  Terminal 
-} from "lucide-react-native";
 
-// Card Component
-function FeatureCard({ 
-  icon: Icon, 
-  emoji, 
-  title, 
-  desc, 
-  onPress 
-}: { 
-  icon: any, 
-  emoji: string, 
-  title: string, 
-  desc: string, 
-  onPress: () => void 
-}) {
+const glass = {
+  backgroundColor: "rgba(255,255,255,0.45)",
+  borderRadius: 28,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.5)",
+  ...(Platform.OS === "web"
+    ? ({
+        backdropFilter: "blur(24px) saturate(140%)",
+        WebkitBackdropFilter: "blur(24px) saturate(140%)",
+      } as any)
+    : {}),
+};
+
+const holoCard = {
+  background: undefined,
+  backgroundColor: "rgba(226,221,248,0.25)",
+  borderRadius: 32,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.6)",
+  ...(Platform.OS === "web"
+    ? ({
+        background:
+          "linear-gradient(135deg, rgba(226,221,248,0.4) 0%, rgba(255,228,242,0.4) 100%)",
+        backdropFilter: "blur(20px)",
+      } as any)
+    : {}),
+};
+
+interface QuickCardProps {
+  emoji: string;
+  title: string;
+  desc: string;
+  bg: string;
+  onPress: () => void;
+}
+
+function QuickCard({ emoji, title, desc, bg, onPress }: QuickCardProps) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.8}
-      className="flex-1 bg-surface-card border border-white/10 rounded-[20px] p-5 m-2 shadow-card backdrop-blur-xl"
+      activeOpacity={0.85}
+      style={[
+        glass,
+        {
+          flex: 1,
+          margin: 6,
+          padding: 20,
+          alignItems: "center",
+          gap: 8,
+        },
+      ]}
     >
-      <Text className="text-[24px] mb-2">{emoji}</Text>
-      <Text className="font-display text-body-lg text-primary mb-1">{title}</Text>
-      <Text className="font-sans text-body-sm text-ink-secondary leading-5">
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 16,
+          backgroundColor: bg,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 4,
+        }}
+      >
+        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      </View>
+      <Text
+        style={{
+          fontFamily: "Plus Jakarta Sans",
+          fontSize: 10,
+          fontWeight: "700",
+          letterSpacing: 1.5,
+          textTransform: "uppercase",
+          color: "#2f3338",
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Noto Serif",
+          fontSize: 10,
+          color: "#5b5f65",
+          textAlign: "center",
+          lineHeight: 14,
+        }}
+      >
         {desc}
       </Text>
     </TouchableOpacity>
@@ -40,104 +96,470 @@ function FeatureCard({
 
 export default function DashboardScreen() {
   const router = useRouter();
-  
-  // Pulse animation for status dot
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
 
   return (
-    <ScrollView 
-      className="flex-1 bg-background px-screen-x"
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingVertical: 60, alignItems: 'center' }}
     >
-      {/* Brand Header */}
-      <View className="items-center mb-10">
-        <Text className="text-[64px] mb-2">🕌</Text>
-        <Text className="font-display text-[48px] text-primary tracking-tight">
-          Imanifest
-        </Text>
-        <Text className="font-sans text-body-lg text-ink-secondary mt-1">
-          Imanifest : Islamic Law of Attraction
-        </Text>
-      </View>
-
-      {/* Status Pill */}
-      <View className="bg-surface border border-primary/20 rounded-full px-6 py-2.5 flex-row items-center mb-12">
-        <Animated.View 
-          style={{ opacity: pulseAnim }}
-          className="w-2.5 h-2.5 bg-accent/80 rounded-full mr-3" 
-        />
-        <Text className="font-sans text-label text-primary uppercase tracking-widest">
-          All Systems Operational
-        </Text>
-      </View>
-
-      {/* Features Grid */}
-      <View className="w-full max-w-[500px]">
-        <View className="flex-row">
-          <FeatureCard 
-            emoji="💚"
-            icon={Heart}
-            title="Heart Pulse"
-            desc="Voice journaling with emotional AI sentiment analysis"
-            onPress={() => router.push("/heartpulse")}
-          />
-          <FeatureCard 
-            emoji="🙌"
-            icon={Sparkles}
-            title="Iman Sync"
-            desc="AI-powered intention analysis with Quranic guidance"
-            onPress={() => router.push("/niyyah-board")}
-          />
+      {/* Header */}
+      <View
+        style={{
+          position: "sticky" as any,
+          top: 0,
+          zIndex: 50,
+          paddingHorizontal: 24,
+          paddingVertical: 16,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "rgba(255,255,255,0.4)",
+          ...(Platform.OS === "web"
+            ? ({ backdropFilter: "blur(24px)" } as any)
+            : {}),
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "#e5dff8",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 2,
+              borderColor: "rgba(255,255,255,0.4)",
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>🌟</Text>
+          </View>
+          <Text
+            style={{
+              fontFamily: "Newsreader",
+              fontSize: 22,
+              fontStyle: "italic",
+              fontWeight: "600",
+              color: "#1e1b2e",
+            }}
+          >
+            Imanifest
+          </Text>
         </View>
-        <View className="flex-row">
-          <FeatureCard 
-            emoji="✅"
-            icon={CheckSquare}
-            title="Dua To-Do"
-            desc="Smart task generation from your daily prayers"
-            onPress={() => router.push("/dua-todo")}
-          />
-          <FeatureCard 
-            emoji="🎧"
-            icon={Headphones}
-            title="Sakinah Hub"
-            desc="Tafakkur & Divine recitations for spiritual peace"
-            onPress={() => router.push("/sakinah")}
-          />
+        <TouchableOpacity
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontSize: 22 }}>🔔</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ paddingHorizontal: 24, gap: 32, paddingTop: 32 }}>
+        {/* Welcome */}
+        <View>
+          <Text
+            style={{
+              fontFamily: "Newsreader",
+              fontSize: 38,
+              fontStyle: "italic",
+              fontWeight: "600",
+              color: "#2f3338",
+              lineHeight: 46,
+              marginBottom: 4,
+            }}
+          >
+            Assalamu'alaikum, Aisha.
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Plus Jakarta Sans",
+              fontSize: 12,
+              color: "#5b5f65",
+              letterSpacing: 0.5,
+            }}
+          >
+            May your heart find peace in today's intentions.
+          </Text>
         </View>
-      </View>
 
-      {/* Footer Backend Bar */}
-      <View className="mt-16 bg-white/5 border border-white/10 rounded-xl px-5 py-3 flex-row items-center">
-        <Terminal size={16} color="#94A3B8" className="mr-3" />
-        <Text className="font-mono text-body-xs text-ink-secondary">
-          API v1.0.0 — <Text className="text-red-400">Backend Running</Text>
-        </Text>
-      </View>
+        {/* Prayer Times */}
+        <View style={[holoCard, { padding: 24 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: "rgba(255,255,255,0.4)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: 26 }}>☀️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontFamily: "Newsreader",
+                  fontSize: 22,
+                  color: "#2f3338",
+                  fontWeight: "600",
+                }}
+              >
+                Dhuhr
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Plus Jakarta Sans",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                  color: "#5b5f65",
+                }}
+              >
+                Current Prayer · 12:45 PM
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text
+                style={{
+                  fontFamily: "Plus Jakarta Sans",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  color: "#605d71",
+                  fontWeight: "700",
+                }}
+              >
+                Next: Asr in
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Newsreader",
+                  fontSize: 32,
+                  color: "#2f3338",
+                  fontWeight: "600",
+                }}
+              >
+                02:42
+              </Text>
+            </View>
+          </View>
+        </View>
 
-      {/* Copyright */}
-      <View className="mt-12 items-center opacity-60">
-        <Text className="font-sans text-[12px] text-ink-secondary">
-          © 2026 Imanifest · Built with ❤️ for the Ummah
-        </Text>
+        {/* Quick Access */}
+        <View>
+          <Text
+            style={{
+              fontFamily: "Newsreader",
+              fontSize: 22,
+              fontWeight: "600",
+              color: "#2f3338",
+              marginBottom: 16,
+            }}
+          >
+            Quick Access
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", margin: -6 }}>
+            <QuickCard
+              emoji="❤️"
+              title="Qalb"
+              desc="Check-in with your spirit"
+              bg="#fce7f3"
+              onPress={() => router.push("/qalb")}
+            />
+            <QuickCard
+              emoji="✨"
+              title="Imanifest"
+              desc="Set your daily intention"
+              bg="#dbeafe"
+              onPress={() => router.push("/imanifest")}
+            />
+            <QuickCard
+              emoji="☑️"
+              title="Dua-to-Do"
+              desc="Act on your manifestations"
+              bg="#fef3c7"
+              onPress={() => router.push("/dua-todo")}
+            />
+            <QuickCard
+              emoji="🧘"
+              title="Tafakkur Hub"
+              desc="Find tranquility in Quran"
+              bg="#d1fae5"
+              onPress={() => router.push("/tafakkur")}
+            />
+          </View>
+        </View>
+
+        {/* Daily Alignment */}
+        <View style={[glass, { padding: 28 }]}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: 20,
+            }}
+          >
+            <View>
+              <Text
+                style={{
+                  fontFamily: "Newsreader",
+                  fontSize: 26,
+                  fontWeight: "600",
+                  color: "#2f3338",
+                }}
+              >
+                Daily Alignment
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Plus Jakarta Sans",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                  color: "#5b5f65",
+                }}
+              >
+                Spiritual Momentum
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text
+                style={{
+                  fontFamily: "Newsreader",
+                  fontSize: 40,
+                  color: "#605d71",
+                  fontWeight: "600",
+                }}
+              >
+                12/15
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Plus Jakarta Sans",
+                  fontSize: 9,
+                  color: "#206c3a",
+                  fontWeight: "700",
+                  letterSpacing: 1,
+                }}
+              >
+                NEARLY THERE
+              </Text>
+            </View>
+          </View>
+
+          {/* Progress Bar */}
+          <View
+            style={{
+              height: 8,
+              backgroundColor: "#eceef3",
+              borderRadius: 4,
+              overflow: "hidden",
+              marginBottom: 16,
+            }}
+          >
+            <View
+              style={{
+                width: "80%",
+                height: "100%",
+                backgroundColor: "#206c3a",
+                borderRadius: 4,
+              }}
+            />
+          </View>
+
+          <Text
+            style={{
+              fontFamily: "Noto Serif",
+              fontSize: 13,
+              fontStyle: "italic",
+              color: "#5b5f65",
+              lineHeight: 20,
+            }}
+          >
+            "Allah does not burden a soul beyond that it can bear." (2:286)
+          </Text>
+        </View>
+
+        {/* Streak + Recent Grid */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          {/* Streak */}
+          <View
+            style={[
+              glass,
+              {
+                flex: 1,
+                padding: 24,
+                alignItems: "center",
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: "rgba(169,247,183,0.4)",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ fontSize: 30 }}>⭐</Text>
+            </View>
+            <Text
+              style={{
+                fontFamily: "Newsreader",
+                fontSize: 18,
+                fontWeight: "600",
+                color: "#0e6030",
+                marginBottom: 4,
+              }}
+            >
+              7-Day Streak
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Noto Serif",
+                fontSize: 11,
+                color: "#1d6b39",
+                fontStyle: "italic",
+                textAlign: "center",
+                marginBottom: 12,
+              }}
+            >
+              Consistency is the bridge to light.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#206c3a",
+                  }}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Recent Intentions */}
+        <View style={[glass, { padding: 28 }]}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: 24,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Newsreader",
+                fontSize: 22,
+                fontWeight: "600",
+                color: "#2f3338",
+              }}
+            >
+              Recent Intentions
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Plus Jakarta Sans",
+                fontSize: 11,
+                color: "#545164",
+              }}
+            >
+              See All →
+            </Text>
+          </View>
+
+          {[
+            { emoji: "❤️", label: "Morning Dhikr", pct: 85, color: "#6d5965" },
+            { emoji: "📖", label: "Surah Ar-Rahman", pct: 40, color: "#206c3a" },
+            { emoji: "🌙", label: "Tahajjud", pct: 62, color: "#605d71" },
+          ].map((item) => (
+            <View
+              key={item.label}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 16,
+                marginBottom: 20,
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "rgba(229,223,248,0.5)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 22 }}>{item.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Noto Serif",
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: "#2f3338",
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "Plus Jakarta Sans",
+                      fontSize: 10,
+                      color: "#5b5f65",
+                    }}
+                  >
+                    {item.pct}%
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    height: 6,
+                    backgroundColor: "#eceef3",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: `${item.pct}%` as any,
+                      height: "100%",
+                      backgroundColor: item.color,
+                      borderRadius: 3,
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
