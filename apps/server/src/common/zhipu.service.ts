@@ -287,7 +287,7 @@ score between 0 and 1.`;
         const response = await axios.post(
           `${this.baseUrl}/chat/completions`,
           {
-            model: "glm-4-flash",
+            model: "glm-4-flash-250414",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userMessage },
@@ -359,7 +359,7 @@ Return ONLY a valid JSON array of English keywords.`;
         const response = await axios.post(
           `${this.baseUrl}/chat/completions`,
           {
-            model: "glm-4v-plus",
+            model: "glm-4v-flash",
             messages: [
               { role: "system", content: systemPrompt },
               {
