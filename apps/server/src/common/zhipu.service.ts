@@ -214,7 +214,7 @@ Do not include any explanation or extra text.`;
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
-          model: "glm-4.5-flash",
+          model: "glm-4-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage },
