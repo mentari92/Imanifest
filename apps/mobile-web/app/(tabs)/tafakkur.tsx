@@ -54,15 +54,15 @@ interface Verse  { verseKey: string; arabic: string; translation: string; }
 
 const NATURE_SOUNDS = [
   { id: "rain",  label: "Rain of Sakinah",  emoji: "🌧️" },
-  { id: "ocean", label: "Ombak Samudra",    emoji: "🌊" },
+  { id: "ocean", label: "Ocean Waves",      emoji: "🌊" },
   { id: "river", label: "Zamzam Flow",      emoji: "💧" },
-  { id: "birds", label: "Subuh Garden",     emoji: "🐦" },
+  { id: "birds", label: "Dawn Garden",      emoji: "🐦" },
 ];
 
 const SOUND_FILES: Record<string, string> = {
   rain:  "/sounds/rain.mp3",
   ocean: "/sounds/ocean.mp3",
-  river: "/sounds/river%20flowing.mp3",
+  river: "/sounds/river.mp3",
   birds: "/sounds/birds.mp3",
 };
 
