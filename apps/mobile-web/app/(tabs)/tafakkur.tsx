@@ -4,7 +4,6 @@ import {
   ActivityIndicator, TextInput, Image,
 } from "react-native";
 import { Headphones } from "lucide-react-native";
-import { api } from "../../lib/api";
 
 const glass = (radius = 24) => ({
   backgroundColor: "rgba(255,255,255,0.45)",
@@ -20,22 +19,23 @@ interface Reciter {
   id: number;
   name: string;
   subtitle: string;
-  style: string;
+  cdnId: string;
   initials: string;
   bg: string;
   photo: string;
 }
 
 function reciterAvatar(name: string): string {
-  return `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(name)}&size=120&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  return `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(name)}&size=120&backgroundColor=b6e3f4,c0aede,d1d4f9&facialHairProbability=100&accessories=Blank&clotheType=BlazerShirt`;
 }
 
-const RECITER_COLORS = ["#7c3aed", "#0e6030", "#1d4ed8", "#92400e", "#334155"];
-
-const FALLBACK_RECITERS: Reciter[] = [
-  { id: 7, name: "Mishary Rashid Alafasy", subtitle: "114 Surahs", style: "Murattal", initials: "MA", bg: "#7c3aed", photo: reciterAvatar("Mishary Rashid Alafasy") },
-  { id: 1, name: "AbdulBaset AbdulSamad",  subtitle: "Egypt",      style: "Murattal", initials: "AB", bg: "#0e6030", photo: reciterAvatar("AbdulBaset AbdulSamad") },
-  { id: 3, name: "Abdur-Rahman as-Sudais", subtitle: "Makkah Imam",style: "Murattal", initials: "AS", bg: "#1d4ed8", photo: reciterAvatar("Abdur-Rahman as-Sudais") },
+const STATIC_RECITERS: Reciter[] = [
+  { id: 7, name: "Mishary Rashid Alafasy",      subtitle: "Kuwait · Murattal",   cdnId: "ar.alafasy",     initials: "MA", bg: "#7c3aed", photo: reciterAvatar("Mishary Rashid Alafasy") },
+  { id: 3, name: "Abdur-Rahman as-Sudais",       subtitle: "Makkah Imam",         cdnId: "ar.sudais",      initials: "AS", bg: "#0e6030", photo: reciterAvatar("Abdur-Rahman as-Sudais") },
+  { id: 6, name: "Maher Al-Muaiqly",             subtitle: "Madinah Imam",        cdnId: "ar.mahermuaiqly",initials: "MM", bg: "#1d4ed8", photo: reciterAvatar("Maher Al-Muaiqly") },
+  { id: 1, name: "AbdulBaset AbdulSamad",        subtitle: "Egypt · Mujawwad",    cdnId: "ar.abdulsamad",  initials: "AB", bg: "#92400e", photo: reciterAvatar("AbdulBaset AbdulSamad") },
+  { id: 9, name: "Mohamed Siddiq El-Minshawi",   subtitle: "Egypt · Murattal",    cdnId: "ar.minshawi",    initials: "MS", bg: "#334155", photo: reciterAvatar("Mohamed Siddiq El-Minshawi") },
+  { id: 4, name: "Saud ash-Shuraym",             subtitle: "Makkah Imam",         cdnId: "ar.shuraym",     initials: "SS", bg: "#065f46", photo: reciterAvatar("Saud ash-Shuraym") },
 ];
 
 const DHIKR_LIST = [
@@ -62,17 +62,6 @@ const SOUND_FILES: Record<string, string> = {
   birds: "/sounds/birds.mp3",
 };
 
-const RECITER_CDN_MAP: Record<number, string> = {
-  7: "ar.alafasy",
-  1: "ar.abdulsamad",
-  2: "ar.abdulsamad",
-  3: "ar.sudais",
-  4: "ar.shuraym",
-  5: "ar.ibrahimakhdar",
-  6: "ar.mahermuaiqly",
-  9: "ar.minshawi",
-  10: "ar.shuraym",
-};
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
@@ -85,7 +74,7 @@ function stripHtml(text: string) {
 
 
 export default function TafakkurHubScreen() {
-  const [reciters, setReciters]         = useState<Reciter[]>(FALLBACK_RECITERS);
+  const [reciters]                       = useState<Reciter[]>(STATIC_RECITERS);
   const [surahs, setSurahs]             = useState<Surah[]>([]);
   const [surahSearch, setSurahSearch]   = useState("");
   const [loadingSurahs, setLoadingSurahs] = useState(true);
@@ -109,50 +98,20 @@ export default function TafakkurHubScreen() {
   const ambientStopRef = useRef<(() => void) | null>(null);
   const requestIdRef  = useRef(0); // cancels stale loadAndPlay calls
 
-  // Load reciters + 114 surahs — try backend, fallback to Quran.com API directly
+  // Load 114 surahs from Quran.com API
   useEffect(() => {
     const load = async () => {
       setLoadingSurahs(true);
       try {
-        // Primary: try Quran.com API directly (CORS-friendly, always up-to-date)
-        const [rRes, sRes] = await Promise.all([
-          fetch("https://api.quran.com/api/v4/resources/recitations?language=en"),
-          fetch("https://api.quran.com/api/v4/chapters?language=en"),
-        ]);
-        const rData = await rRes.json();
-        const sData = await sRes.json();
-
-        const TOP_IDS = [7, 3, 6, 1, 2, 4, 9, 5, 10, 8];
-        const allRecitations: any[] = rData.recitations || [];
-        const topRecitations = TOP_IDS
-          .map((id) => allRecitations.find((r: any) => r.id === id))
-          .filter(Boolean)
-          .slice(0, 10);
-
-        const mapped: Reciter[] = topRecitations.map((r: any, i: number) => {
-          const name = String(r.reciter_name || "Unknown");
-          const initials = name.split(" ").filter(Boolean).slice(0, 2)
-            .map((p: string) => p[0]?.toUpperCase() || "").join("") || "QR";
-          return {
-            id: r.id,
-            name,
-            subtitle: String(r.style || "Murattal"),
-            style: String(r.style || "Murattal"),
-            initials,
-            bg: RECITER_COLORS[i % RECITER_COLORS.length],
-            photo: reciterAvatar(name),
-          };
-        });
-        if (mapped.length > 0) setReciters(mapped);
-
-        setSurahs((sData.chapters || []).map((c: any) => ({
+        const res = await fetch("https://api.quran.com/api/v4/chapters?language=en");
+        const data = await res.json();
+        setSurahs((data.chapters || []).map((c: any) => ({
           number: Number(c.id),
           name: String(c.name_arabic || ""),
           englishName: String(c.name_simple || `Surah ${c.id}`),
           versesCount: Number(c.verses_count || 0),
         })));
       } catch {
-        setReciters(FALLBACK_RECITERS);
         setSurahs(Array.from({ length: 114 }, (_, i) => ({
           number: i + 1, name: "", englishName: `Surah ${i + 1}`, versesCount: 0,
         })));
@@ -223,20 +182,7 @@ export default function TafakkurHubScreen() {
     setAudioError(null);
     setIsLoadingAudio(true);
 
-    let url: string | null = null;
-    try {
-      const res = await api.get("/sakinah/audio", {
-        params: { reciterId: reciter.id, surahNumber: surah.number },
-        timeout: 10000,
-      });
-      url = res.data?.url ?? null;
-    } catch { url = null; }
-
-    // CDN fallback
-    if (!url) {
-      const id = RECITER_CDN_MAP[reciter.id] || "ar.alafasy";
-      url = `https://cdn.islamic.network/quran/audio/128/${id}/${surah.number}.mp3`;
-    }
+    const url = `https://cdn.islamic.network/quran/audio/128/${reciter.cdnId}/${surah.number}.mp3`;
 
     // Stale request — a newer surah was tapped
     if (thisId !== requestIdRef.current) return;
