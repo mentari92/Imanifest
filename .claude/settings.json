@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk git *)",
+      "Bash(rtk ls *)",
+      "Bash(pnpm --filter @imanifest/shared build)",
+      "Bash(rtk tsc *)",
+      "Bash(rtk read *)",
+      "Bash(git -C /Users/mentarirahman/Documents/Imanifestapp remote get-url origin)",
+      "Bash(node -e ' *)",
+      "Bash(ssh root@207.180.242.151 'cd /root/imanifestapp && git pull origin main && docker compose build --no-cache web && docker compose up -d web && sleep 15 && WEB=$\\(docker ps --filter \"name=imanifestapp-web\" -q | head -1\\) && docker network connect --alias imanifest-web n8n_default $WEB 2>/dev/null; echo \"=== DONE ===\"')",
+      "Bash(git config *)",
+      "Bash(git -C /Users/mentarirahman/Documents/Imanifestapp remote -v)",
+      "Bash(rtk grep *)",
+      "Bash(ssh root@207.180.242.151 'cd /root/imanifestapp && grep -E \"ZHIPU_API_KEY|OPENROUTER_API_KEY\" .env 2>/dev/null || grep -E \"ZHIPU_API_KEY|OPENROUTER_API_KEY\" .env.production 2>/dev/null || echo \"ENV FILE NOT FOUND\"')",
+      "Bash(ssh root@207.180.242.151 \"cd /root/Imanifestapp && git pull && docker compose build web && docker compose up -d web\")"
+    ]
+  }
+}
