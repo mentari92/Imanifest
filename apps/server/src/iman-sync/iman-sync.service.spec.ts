@@ -22,6 +22,7 @@ describe("ImanSyncService", () => {
     extractThemes: jest.fn(),
     extractThemesVision: jest.fn(),
     generateSummary: jest.fn(),
+    generateTasks: jest.fn(),
   };
 
   const mockQuranApi = {
@@ -68,7 +69,10 @@ describe("ImanSyncService", () => {
         },
       ],
       aiSummary: "Your intention is supported by the Quran.",
-      tasks: ["Pray on time", "Read 5 ayat daily"],
+      tasks: [
+        { title: "Pray on time", guidance: "Set adhan reminders and pray at first call." },
+        { title: "Read 5 ayat daily", guidance: "Read after Fajr and note one practical lesson." },
+      ],
     };
 
     it("should return cached result when cache hit", async () => {
