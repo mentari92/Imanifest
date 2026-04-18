@@ -82,7 +82,10 @@ export default function ImanifestScreen() {
   };
 
   const handleContinueToDuaTodo = () => {
-    router.push('/(tabs)/dua-todo');
+    router.push({
+      pathname: '/(tabs)/dua-todo',
+      params: result?.id ? { manifestationId: result.id } : undefined,
+    });
   };
 
   const startVoiceRecording = () => {
