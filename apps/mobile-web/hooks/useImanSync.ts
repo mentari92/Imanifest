@@ -15,7 +15,7 @@ interface ImanSyncResult {
   id: string;
   sentiment: 'positive' | 'neutral' | 'negative';
   verses: Verse[];
-  suggestedActions: string[];
+  suggestedActions: Array<{ title: string; guidance?: string }>;
   encouragement: string;
   createdAt: string;
 }
@@ -41,7 +41,7 @@ interface AnalyzeResponse {
   manifestationId: string;
   verses: RawVerse[];
   aiSummary: string;
-  tasks: string[];
+  tasks: Array<string | { title?: string; guidance?: string }>;
 }
 
 interface HistoryItem extends ImanSyncResult {
@@ -78,6 +78,22 @@ export function useImanSync() {
     };
   };
 
+  const normalizeTask = (
+    task: string | { title?: string; guidance?: string },
+  ): { title: string; guidance?: string } => {
+    if (typeof task === 'string') {
+      return { title: task.trim(), guidance: undefined };
+    }
+
+    const rawTitle = typeof task?.title === 'string' ? task.title : '';
+    const rawGuidance = typeof task?.guidance === 'string' ? task.guidance : '';
+
+    return {
+      title: rawTitle.trim() || 'Action Step',
+      guidance: rawGuidance.trim() || undefined,
+    };
+  };
+
   const analyzeIntention = useCallback(async (text: string) => {
     setLoading(true);
     setError(null);
@@ -93,7 +109,9 @@ export function useImanSync() {
         verses: Array.isArray(response.verses)
           ? response.verses.map(mapVerse)
           : [],
-        suggestedActions: Array.isArray(response.tasks) ? response.tasks : [],
+        suggestedActions: Array.isArray(response.tasks)
+          ? response.tasks.map(normalizeTask)
+          : [],
         encouragement: response.aiSummary || '',
         createdAt: new Date().toISOString(),
       };

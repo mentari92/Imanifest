@@ -63,7 +63,6 @@ export default function DuaTodoScreen() {
     fetchTasks,
     completeTask,
     uncompleteTask,
-    deleteTask,
   } = useDuaToDo();
   const [intention, setIntention] = useState('');
 
@@ -93,17 +92,6 @@ export default function DuaTodoScreen() {
     } catch (_) {
       Alert.alert('Failed to update task');
     }
-  };
-
-  const handleDelete = (taskId: string) => {
-    Alert.alert('Delete Task', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteTask(taskId),
-      },
-    ]);
   };
 
   const completedCount = tasks?.filter((t) => t.completed).length ?? 0;

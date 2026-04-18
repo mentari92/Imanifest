@@ -69,12 +69,17 @@ export default function ImanifestScreen() {
   }, [fetchHistory]);
 
   const handleSubmit = async () => {
-    if (!intentionText.trim()) {
+    const sanitizedIntention = intentionText.replace(/\s+/g, ' ').trim();
+    if (!sanitizedIntention) {
       Alert.alert('Please enter your intention or dua');
       return;
     }
+    if (sanitizedIntention.length > 500) {
+      Alert.alert('Intention is too long', 'Please keep it under 500 characters for better guidance.');
+      return;
+    }
     try {
-      await analyzeIntention(intentionText.trim());
+      await analyzeIntention(sanitizedIntention);
       fetchHistory().catch(() => {});
     } catch (_) {
       // Error is already set in the hook
@@ -318,7 +323,12 @@ export default function ImanifestScreen() {
                 {result.suggestedActions.map((action, idx) => (
                   <View key={idx} style={styles.actionRow}>
                     <Text style={styles.actionDot}>·</Text>
-                    <Text style={styles.actionText}>{action}</Text>
+                    <View style={styles.actionContent}>
+                      <Text style={styles.actionText}>{action.title}</Text>
+                      {action.guidance ? (
+                        <Text style={styles.actionGuidance}>{action.guidance}</Text>
+                      ) : null}
+                    </View>
                   </View>
                 ))}
               </>
@@ -669,11 +679,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   actionText: {
-    flex: 1,
     fontSize: 15,
     lineHeight: 23,
     color: C.onSurface,
     fontFamily: 'Noto Serif',
+  },
+  actionContent: {
+    flex: 1,
+    gap: 4,
+  },
+  actionGuidance: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: C.onSurfaceVariant,
+    fontFamily: 'Plus Jakarta Sans',
   },
   referenceNote: {
     fontSize: 12,
