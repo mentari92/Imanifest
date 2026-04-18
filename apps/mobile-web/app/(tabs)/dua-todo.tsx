@@ -11,7 +11,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useDuaToDo } from '../../hooks/useDuaToDo';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
@@ -29,6 +29,7 @@ const C = {
   onSurfaceVariant: '#5b5f65',
   outlineVariant: '#aeb2b9',
   error: '#ac3149',
+  successSoft: '#edf8ef',
 };
 
 const glass = {
@@ -52,6 +53,7 @@ const glass = {
 export default function DuaTodoScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { manifestationId } = useLocalSearchParams<{ manifestationId?: string }>();
   const {
     loading,
     error,
@@ -66,8 +68,8 @@ export default function DuaTodoScreen() {
   const [intention, setIntention] = useState('');
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    fetchTasks(typeof manifestationId === 'string' ? manifestationId : undefined).catch(() => {});
+  }, [fetchTasks, manifestationId]);
 
   const handleGenerate = async () => {
     if (!intention.trim()) {
@@ -107,6 +109,8 @@ export default function DuaTodoScreen() {
   const completedCount = tasks?.filter((t) => t.completed).length ?? 0;
   const totalCount = tasks?.length ?? 0;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const firstPendingIndex = tasks.findIndex((task) => !task.completed);
+  const activeIndex = firstPendingIndex === -1 ? tasks.length - 1 : firstPendingIndex;
 
   // SVG progress ring values
   const RADIUS = 40;
@@ -129,11 +133,10 @@ export default function DuaTodoScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.contentWrap}>
         {/* ── Header ─────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <View style={styles.avatarPlaceholder} />
           <Text style={styles.brandTitle}>Dua-to-Do</Text>
-          <View style={styles.bellPlaceholder} />
         </View>
 
         {/* ── Hero ───────────────────────────────────────────────── */}
@@ -205,30 +208,34 @@ export default function DuaTodoScreen() {
         )}
 
         {/* ── Intention Input ─────────────────────────────────────── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Your Dua / Intention</Text>
-        </View>
-        <View style={[glass, styles.inputCard]}>
-          <TextInput
-            style={styles.intentionInput}
-            placeholder="e.g., I want to become closer to Allah through daily Quran reading..."
-            placeholderTextColor="rgba(91,95,101,0.4)"
-            value={intention}
-            onChangeText={setIntention}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-        <TouchableOpacity
-          style={[styles.ctaButton, loading && styles.ctaDisabled]}
-          onPress={handleGenerate}
-          disabled={loading}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.ctaText}>
-            {loading ? 'Generating...' : 'Add to Daily Tasks'}
-          </Text>
-        </TouchableOpacity>
+        {totalCount === 0 ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Your Dua / Intention</Text>
+            </View>
+            <View style={[glass, styles.inputCard]}>
+              <TextInput
+                style={styles.intentionInput}
+                placeholder="e.g., I want to become closer to Allah through daily Quran reading..."
+                placeholderTextColor="rgba(91,95,101,0.4)"
+                value={intention}
+                onChangeText={setIntention}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.ctaButton, loading && styles.ctaDisabled]}
+              onPress={handleGenerate}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>
+                {loading ? 'Generating...' : 'Add to Daily Tasks'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
 
         {/* ── Feedback ───────────────────────────────────────────── */}
         {error && <ErrorMessage message={error} />}
@@ -253,8 +260,12 @@ export default function DuaTodoScreen() {
         {tasks && tasks.length > 0 && (
           <View style={styles.tasksSection}>
             {tasks.map((task, idx) => {
-              const isActive = !task.completed && idx === tasks.findIndex((t) => !t.completed);
+              const isActive = idx === activeIndex && !task.completed;
               const isPending = !task.completed && !isActive;
+              const completedAt = task.updatedAt || task.createdAt;
+              const completedLabel = completedAt
+                ? new Date(completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : null;
 
               return (
                 <View
@@ -286,22 +297,21 @@ export default function DuaTodoScreen() {
                       {task.title}
                     </Text>
                     {task.completed && (
-                      <Text style={styles.taskMeta}>Completed</Text>
+                      <Text style={styles.taskMeta}>Completed at {completedLabel || '--:--'}</Text>
+                    )}
+                    {isActive && (
+                      <Text style={styles.taskMetaActive}>
+                        Connect one focused block of effort to your dua and finish it before the day ends.
+                      </Text>
                     )}
                     {isPending && (
                       <Text style={styles.taskMeta}>
-                        Unlocks after previous task
+                        Unlocks after Task {idx}
                       </Text>
                     )}
                   </View>
 
-                  <TouchableOpacity
-                    onPress={() => handleDelete(task.id)}
-                    style={styles.deleteBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={styles.deleteBtnText}>×</Text>
-                  </TouchableOpacity>
+                  {isActive ? <Text style={styles.taskSparkle}>✦</Text> : null}
                 </View>
               );
             })}
@@ -309,17 +319,20 @@ export default function DuaTodoScreen() {
         )}
 
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/tafakkur')}
+          onPress={totalCount > 0 ? () => router.push('/(tabs)/tafakkur') : handleGenerate}
           activeOpacity={0.85}
           style={[
             styles.ctaButton,
-            { backgroundColor: 'rgba(255,255,255,0.65)', marginTop: 0, marginBottom: 24 },
+            totalCount > 0 ? styles.bottomPrimaryButton : { marginTop: 0, marginBottom: 24 },
           ]}
         >
-          <Text style={[styles.ctaText, { color: C.tertiary }]}>Open Tafakkur Hub  →</Text>
+          <Text style={[styles.ctaText, totalCount > 0 ? styles.bottomPrimaryText : undefined]}>
+            {totalCount > 0 ? 'Add to Daily Tasks' : 'Open Tafakkur Hub  →'}
+          </Text>
         </TouchableOpacity>
 
         <View style={{ height: 120 }} />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -332,6 +345,12 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   blobTopLeft: {
     position: 'absolute',
@@ -357,36 +376,26 @@ const styles = StyleSheet.create({
   },
   // header
   header: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 28,
     paddingVertical: 4,
   },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.primaryContainer,
-  },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 16,
     fontFamily: 'Newsreader',
     fontStyle: 'italic' as const,
     fontWeight: '600' as const,
     color: '#1e2024',
   },
-  bellPlaceholder: {
-    width: 40,
-    height: 40,
-  },
   // hero
   hero: {
-    marginBottom: 24,
+    marginBottom: 30,
   },
   displayHeadline: {
-    fontSize: 48,
-    lineHeight: 54,
+    fontSize: Platform.OS === 'web' ? 70 : 54,
+    lineHeight: Platform.OS === 'web' ? 74 : 58,
     fontFamily: 'Newsreader',
     fontStyle: 'italic' as const,
     color: C.onSurface,
@@ -399,6 +408,7 @@ const styles = StyleSheet.create({
     padding: 28,
     marginBottom: 28,
     overflow: 'hidden',
+    borderRadius: 28,
   },
   progressLeft: {
     flex: 1,
@@ -412,11 +422,11 @@ const styles = StyleSheet.create({
     color: C.onSurfaceVariant,
   },
   progressValue: {
-    fontSize: 26,
+    fontSize: 20,
     fontFamily: 'Newsreader',
     fontStyle: 'italic' as const,
     color: C.onSurfaceVariant,
-    lineHeight: 34,
+    lineHeight: 28,
   },
   ringWrap: {
     width: 96,
@@ -450,6 +460,7 @@ const styles = StyleSheet.create({
   inputCard: {
     padding: 20,
     marginBottom: 14,
+    borderRadius: 28,
   },
   intentionInput: {
     fontSize: 17,
@@ -518,35 +529,37 @@ const styles = StyleSheet.create({
   // tasks
   tasksSection: {
     gap: 0,
-    marginBottom: 8,
+    marginBottom: 24,
   },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 18,
-    gap: 20,
+    paddingVertical: 14,
+    gap: 18,
   },
   taskRowActive: {
-    padding: 22,
-    marginHorizontal: -4,
-    marginBottom: 4,
+    padding: 20,
+    marginTop: 8,
+    marginBottom: 10,
     borderLeftWidth: 4,
     borderLeftColor: C.tertiary,
     borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.78)',
   },
   taskRowPending: {
-    opacity: 0.45,
+    opacity: 0.38,
   },
   taskCheck: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: 'rgba(119,123,129,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    marginTop: 2,
+    marginTop: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   taskCheckDone: {
     backgroundColor: C.tertiary,
@@ -559,7 +572,7 @@ const styles = StyleSheet.create({
   },
   taskCheckMark: {
     color: '#e8ffe8',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700' as const,
   },
   taskContent: {
@@ -567,10 +580,11 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   taskTitle: {
-    fontSize: 19,
-    fontFamily: 'Noto Serif',
+    fontSize: 17,
+    fontFamily: 'Newsreader',
+    fontStyle: 'italic' as const,
     color: C.onSurface,
-    lineHeight: 27,
+    lineHeight: 25,
   },
   taskTitleDone: {
     textDecorationLine: 'line-through' as const,
@@ -583,15 +597,28 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic' as const,
   },
-  deleteBtn: {
-    paddingTop: 6,
-    paddingLeft: 4,
+  taskMetaActive: {
+    fontSize: 12,
+    color: C.onSurfaceVariant,
+    marginTop: 6,
+    lineHeight: 18,
   },
-  deleteBtnText: {
-    fontSize: 22,
-    color: C.error,
-    fontWeight: '700' as const,
-    lineHeight: 24,
+  taskSparkle: {
+    fontSize: 28,
+    color: '#d8d1e6',
+    lineHeight: 28,
+    marginTop: 8,
+  },
+  bottomPrimaryButton: {
+    marginTop: 6,
+    marginBottom: 24,
+    alignSelf: 'center',
+    minWidth: 220,
+    paddingHorizontal: 26,
+    paddingVertical: 18,
+  },
+  bottomPrimaryText: {
+    color: '#e8ffe8',
   },
 });
 

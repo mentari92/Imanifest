@@ -22,6 +22,7 @@ interface DuaTask {
 interface GenerateTasksResult {
   tasks: DuaTask[];
   relevantVerses: Verse[];
+  manifestationId?: string;
 }
 
 interface RawVerse {
@@ -103,6 +104,7 @@ export function useDuaToDo() {
       return {
         tasks: mappedTasks,
         relevantVerses: mappedVerses,
+        manifestationId: analyzeResponse.manifestationId,
       };
     } catch (err: any) {
       const message = err.message || 'Failed to generate tasks';
@@ -113,9 +115,47 @@ export function useDuaToDo() {
     }
   }, []);
 
-  const fetchTasks = useCallback(async () => {
-    setTasks([]);
-    return [];
+  const fetchTasks = useCallback(async (manifestationId?: string) => {
+    if (!manifestationId) {
+      setTasks([]);
+      setVerses([]);
+      return [];
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const existing = await apiPost<{ tasks: RawTask[] }>(
+        '/dua-to-do/tasks',
+        { manifestationId },
+      );
+
+      const existingTasks = Array.isArray(existing?.tasks)
+        ? existing.tasks.map(mapTask)
+        : [];
+
+      if (existingTasks.length > 0) {
+        setTasks(existingTasks);
+        return existingTasks;
+      }
+
+      const generated = await apiPost<{ tasks: RawTask[] }>(
+        '/dua-to-do/generate',
+        { manifestationId },
+      );
+
+      const mappedTasks = Array.isArray(generated?.tasks)
+        ? generated.tasks.map(mapTask)
+        : [];
+      setTasks(mappedTasks);
+      return mappedTasks;
+    } catch (err: any) {
+      const message = err.message || 'Failed to fetch tasks';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const completeTask = useCallback(async (taskId: string) => {
