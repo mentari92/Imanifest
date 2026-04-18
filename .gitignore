@@ -10,6 +10,9 @@ dist/
 .env
 .env.local
 .env.*.local
+.env.*
+**/.env
+**/.env.*
 
 # Expo
 apps/mobile-web/.expo/
@@ -35,10 +38,13 @@ npm-debug.log*
 # Coverage
 coverage/
 
-# BMad internal tooling
+# Internal tooling
 _bmad/
 .cline/
 
-# BMad output internals (keep implementation-artifacts/story specs)
-_bmad-output/planning-artifacts/
-_bmad-output/test-artifacts/
+# Private local/internal folders
+_bmad-output/
+apps/mobile-web/_bmad/
+apps/mobile-web/_bmad-output/
+apps/mobile-web/.agent/
+.claude/
