@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { QuranApiService } from '../common/quran-api.service';
-import { QuranMcpService } from '../common/quran-mcp.service';
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { QuranApiService } from "../common/quran-api.service";
+import { RedisService } from "../common/redis.service";
 
 interface SurahInfo {
   number: number;
@@ -10,63 +10,53 @@ interface SurahInfo {
 }
 
 interface ReciterInfo {
+  id: number;
   identifier: string;
   name: string;
   englishName: string;
-  language: string;
+  style: string;
+  subtitle: string;
+  isAvailable: boolean;
+}
+
+interface VerseAudioResult {
+  url: string;
+  reciterIdUsed: number;
+  fallbackUsed: boolean;
 }
 
 @Injectable()
 export class SakinahService {
   private readonly logger = new Logger(SakinahService.name);
 
-  // Popular reciters curated list
-  private readonly popularReciters: ReciterInfo[] = [
-    {
-      identifier: 'ar.abdurrahmaansudais',
-      name: 'Abdurrahman As-Sudais',
-      englishName: 'Abdurrahman As-Sudais',
-      language: 'ar',
-    },
-    {
-      identifier: 'ar.abdulbasitmurattal',
-      name: 'Abdul Basit (Murattal)',
-      englishName: 'Abdul Basit',
-      language: 'ar',
-    },
-    {
-      identifier: 'ar.misharyrashidalafasy',
-      name: 'Mishary Rashid Alafasy',
-      englishName: 'Mishary Rashid Alafasy',
-      language: 'ar',
-    },
-    {
-      identifier: 'ar.hudhaify',
-      name: 'Ali Al-Hudhaify',
-      englishName: 'Ali Al-Hudhaify',
-      language: 'ar',
-    },
-    {
-      identifier: 'ar.minshawi',
-      name: 'Mohamed Siddiq El-Minshawi',
-      englishName: 'Minshawi',
-      language: 'ar',
-    },
-    {
-      identifier: 'ar.husary',
-      name: 'Mahmoud Khalil Al-Husary',
-      englishName: 'Husary',
-      language: 'ar',
-    },
+  private readonly reciterSubtitleHints: Record<string, string> = {
+    "mishary rashid alafasy": "Kuwait · Murattal",
+    "abdurrahman as sudais": "Makkah Imam",
+    "maher al muaiqly": "Madinah Imam",
+    "abdulbaset abdulsamad": "Egypt · Mujawwad",
+    "mohamed siddiq al minshawi": "Egypt · Murattal",
+    "saud ash shuraym": "Makkah Imam",
+    "abu bakr al shatri": "Saudi · Murattal",
+    "hani ar rifai": "Saudi · Murattal",
+  };
+
+  private readonly reciterPriorityKeywords = [
+    "mishary",
+    "sudais",
+    "maher",
+    "abdulbaset",
+    "minshawi",
+    "shuraym",
+    "shatri",
+    "rifai",
   ];
 
   constructor(
-    private quranApiService: QuranApiService,
-    private quranMcpService: QuranMcpService,
+    private readonly quranApiService: QuranApiService,
+    private readonly redis: RedisService,
   ) {}
 
   async getSurahs(): Promise<SurahInfo[]> {
-    // Try Quran API first
     const surahs = await this.quranApiService.getSurahs();
     if (surahs && surahs.length > 0) {
       return surahs.map((s) => ({
@@ -77,85 +67,197 @@ export class SakinahService {
       }));
     }
 
-    // Fallback: return hardcoded list of surah names
-    this.logger.warn('Using fallback surah list');
+    this.logger.warn("Using fallback surah list");
     return this.getFallbackSurahs();
   }
 
   async getReciters(): Promise<ReciterInfo[]> {
-    // Try to get from API, but use curated list as primary
+    const cacheKey = "sakinah:reciters:v2";
+
     try {
-      const editions = await this.quranApiService.getAudioEditions();
-      if (editions && editions.length > 0) {
-        // Filter to popular reciters or return all
-        return editions.map((e) => ({
-          identifier: e.identifier,
-          name: e.name,
-          englishName: e.englishName || e.name,
-          language: e.language,
-        }));
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as ReciterInfo[];
       }
-    } catch (error) {
-      this.logger.warn(
-        `Failed to get reciters from API: ${error instanceof Error ? error.message : error}`,
-      );
+    } catch {
+      // non-critical cache read failure
     }
-    return this.popularReciters;
+
+    const recitations = await this.quranApiService.getFoundationRecitations();
+
+    if (recitations.length === 0) {
+      return [];
+    }
+
+    const mapped = recitations.map((r) => {
+      const englishName = this.cleanName(r.reciter_name);
+      const subtitleHint = this.reciterSubtitleHints[this.normalizeName(englishName)];
+      const style = r.style || "Murattal";
+
+      return {
+        id: r.id,
+        identifier: `qf:${r.id}`,
+        name: englishName,
+        englishName,
+        style,
+        subtitle: subtitleHint || `Recitation · ${style}`,
+        isAvailable: true,
+      } satisfies ReciterInfo;
+    });
+
+    const prioritized = this.sortByPriority(mapped);
+
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(prioritized), 21600);
+    } catch {
+      // non-critical cache write failure
+    }
+
+    return prioritized;
+  }
+
+  async getPopularReciters(): Promise<ReciterInfo[]> {
+    const reciters = await this.getReciters();
+    return reciters.slice(0, 10);
   }
 
   async getAudioUrl(
     reciterIdentifierOrId: string | number,
     surahNumber: number,
-  ): Promise<{ url: string }> {
-    // Validate surah number
+  ): Promise<{ url: string; reciterIdUsed: number; fallbackUsed: boolean }> {
     if (surahNumber < 1 || surahNumber > 114) {
-      throw new BadRequestException('Invalid surah number');
+      throw new BadRequestException("Invalid surah number");
     }
 
-    if (typeof reciterIdentifierOrId === 'number' && reciterIdentifierOrId <= 0) {
-      throw new BadRequestException('Invalid reciter ID');
+    const reciterId = this.toReciterId(reciterIdentifierOrId);
+    if (reciterId <= 0) {
+      throw new BadRequestException("Invalid reciter ID");
     }
 
-    const reciterMap: Record<number, string> = {
-      1: 'ar.abdulbasitmurattal',
-      3: 'ar.abdurrahmaansudais',
-      7: 'ar.alafasy',
-    };
-    const reciterIdentifier =
-      typeof reciterIdentifierOrId === 'number'
-        ? reciterMap[reciterIdentifierOrId] || 'ar.alafasy'
-        : reciterIdentifierOrId;
-
-    // Try Quran API first
-    const url = await this.quranApiService.getAudioUrl(
-      surahNumber,
-      reciterIdentifier,
-    );
-    if (url) return { url };
-
-    // Fallback: construct CDN URL
-    const padded = String(surahNumber).padStart(3, '0');
-    return {
-      url: `https://cdn.islamic.network/quran/audio/128/${reciterIdentifier}/${padded}.mp3`,
-    };
+    const ayahKey = `${surahNumber}:1`;
+    return this.getVerseAudioUrl(reciterId, ayahKey);
   }
 
-  async getPopularReciters(): Promise<ReciterInfo[]> {
-    return this.popularReciters;
+  async getVerseAudioUrl(
+    reciterId: number,
+    ayahKey: string,
+  ): Promise<VerseAudioResult> {
+    if (reciterId <= 0) {
+      throw new BadRequestException("Invalid reciter ID");
+    }
+
+    if (!/^\d+:\d+$/.test(ayahKey)) {
+      throw new BadRequestException("Invalid ayah key");
+    }
+
+    const cacheKey = `sakinah:verse-audio:${reciterId}:${ayahKey}`;
+
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as VerseAudioResult;
+      }
+    } catch {
+      // non-critical cache read failure
+    }
+
+    const primary = await this.quranApiService.getFoundationAyahAudioUrl(reciterId, ayahKey);
+    if (primary) {
+      const result: VerseAudioResult = {
+        url: primary,
+        reciterIdUsed: reciterId,
+        fallbackUsed: false,
+      };
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(result), 3600);
+      } catch {
+        // non-critical cache write failure
+      }
+      return result;
+    }
+
+    const reciters = await this.getReciters();
+    const fallbackCandidates = reciters
+      .filter((r) => r.id !== reciterId)
+      .slice(0, 4);
+
+    for (const fallback of fallbackCandidates) {
+      const fallbackUrl = await this.quranApiService.getFoundationAyahAudioUrl(
+        fallback.id,
+        ayahKey,
+      );
+      if (!fallbackUrl) {
+        continue;
+      }
+
+      const result: VerseAudioResult = {
+        url: fallbackUrl,
+        reciterIdUsed: fallback.id,
+        fallbackUsed: true,
+      };
+
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(result), 1800);
+      } catch {
+        // non-critical cache write failure
+      }
+
+      return result;
+    }
+
+    throw new BadRequestException("Audio unavailable for selected reciter");
+  }
+
+  private sortByPriority(reciters: ReciterInfo[]): ReciterInfo[] {
+    return [...reciters].sort((a, b) => {
+      const aRank = this.getPriorityRank(a.name);
+      const bRank = this.getPriorityRank(b.name);
+      if (aRank !== bRank) {
+        return aRank - bRank;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  private getPriorityRank(name: string): number {
+    const normalized = this.normalizeName(name);
+    const index = this.reciterPriorityKeywords.findIndex((k) => normalized.includes(k));
+    return index === -1 ? 999 : index;
+  }
+
+  private toReciterId(reciterIdentifierOrId: string | number): number {
+    if (typeof reciterIdentifierOrId === "number") {
+      return reciterIdentifierOrId;
+    }
+
+    if (/^\d+$/.test(reciterIdentifierOrId)) {
+      return parseInt(reciterIdentifierOrId, 10);
+    }
+
+    const taggedId = reciterIdentifierOrId.match(/^qf:(\d+)$/i);
+    if (taggedId) {
+      return parseInt(taggedId[1], 10);
+    }
+
+    return -1;
+  }
+
+  private normalizeName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  private cleanName(name: string): string {
+    return name.replace(/\s+/g, " ").trim();
   }
 
   private getFallbackSurahs(): SurahInfo[] {
-    const surahNames = [
-      { name: 'الفاتحة', englishName: 'Al-Fatiha', translation: 'The Opening' },
-      { name: 'البقرة', englishName: 'Al-Baqara', translation: 'The Cow' },
-      { name: 'آل عمران', englishName: 'Aal-Imran', translation: 'The Family of Imran' },
-      { name: 'النساء', englishName: 'An-Nisa', translation: 'The Women' },
-      { name: 'المائدة', englishName: 'Al-Maida', translation: 'The Table Spread' },
-    ];
-    return surahNames.map((s, i) => ({
+    return Array.from({ length: 114 }, (_, i) => ({
       number: i + 1,
-      name: s.name,
-      englishName: s.englishName,
+      name: "",
+      englishName: `Surah ${i + 1}`,
       versesCount: 0,
     }));
   }

@@ -3,7 +3,6 @@ import {
   Get,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { SakinahService } from './sakinah.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
@@ -35,13 +34,22 @@ export class SakinahController {
   async getAudioUrl(
     @Query('surah') surah: string,
     @Query('reciter') reciter: string,
-    @Request() req: any,
   ) {
     const surahNumber = parseInt(surah, 10);
     const reciterValue = /^\d+$/.test(reciter)
       ? parseInt(reciter, 10)
       : reciter;
-    const url = await this.sakinahService.getAudioUrl(reciterValue, surahNumber);
-    return { url };
+    const result = await this.sakinahService.getAudioUrl(reciterValue, surahNumber);
+    return result;
+  }
+
+  @Get('verse-audio-url')
+  async getVerseAudioUrl(
+    @Query('ayahKey') ayahKey: string,
+    @Query('reciterId') reciterId: string,
+  ) {
+    const parsedReciterId = parseInt(reciterId, 10);
+    const result = await this.sakinahService.getVerseAudioUrl(parsedReciterId, ayahKey);
+    return result;
   }
 }
