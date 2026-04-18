@@ -11,6 +11,10 @@ function loadLastManifestationId(): string | undefined {
   try { return sessionStorage.getItem(LAST_MANIFESTATION_KEY) ?? undefined; } catch (_) { return undefined; }
 }
 
+function clearLastManifestationId() {
+  try { sessionStorage.removeItem(LAST_MANIFESTATION_KEY); } catch (_) {}
+}
+
 interface Verse {
   number: number;
   text: string;
@@ -168,6 +172,17 @@ export function useDuaToDo() {
       return mappedTasks;
     } catch (err: any) {
       const message = err.message || 'Failed to fetch tasks';
+
+      // Stale manifestation IDs can happen after cleanup/history rewrite.
+      // Fail gracefully by resetting local cache and showing empty state.
+      if (/manifestation not found|api error: 404/i.test(message)) {
+        clearLastManifestationId();
+        setTasks([]);
+        setVerses([]);
+        setError(null);
+        return [];
+      }
+
       setError(message);
       throw err;
     } finally {

@@ -10,7 +10,7 @@ export interface AnalyzeResult {
   manifestationId: string;
   verses: VerseResult[];
   aiSummary: string;
-  tasks: string[];
+  tasks: Array<{ title: string; guidance?: string }>;
 }
 
 export interface ManifestationHistoryItem {
@@ -26,6 +26,8 @@ export interface ManifestationHistoryItem {
 export interface AnalyzeVisionResult extends AnalyzeResult {
   imagePath: string;
 }
+
+type SuggestedAction = { title: string; guidance?: string };
 
 const CACHE_TTL = 3600;
 const demoManifestationStore = new Map<string, {
@@ -171,7 +173,7 @@ export class ImanSyncService {
     intentText: string;
     verses: VerseResult[];
     imagePath?: string;
-  }): Promise<{ manifestationId: string; verses: VerseResult[]; aiSummary: string; tasks: string[] }> {
+  }): Promise<{ manifestationId: string; verses: VerseResult[]; aiSummary: string; tasks: SuggestedAction[] }> {
     const { userId, intentText, verses, imagePath } = params;
 
     this.logger.log("Generating AI summary and tasks...");
@@ -180,12 +182,30 @@ export class ImanSyncService {
       translation: v.translation,
     }));
 
-    const [aiSummary, tasks] = await Promise.all([
+    const [aiSummary, rawTasks] = await Promise.all([
       this.zhipu.generateSummary(intentText, versesForAI),
       typeof (this.zhipu as any).generateTasks === "function"
         ? (this.zhipu as any).generateTasks(intentText, versesForAI)
         : Promise.resolve([]),
     ]);
+
+    const tasks: SuggestedAction[] = Array.isArray(rawTasks)
+      ? rawTasks
+          .map((task) => {
+            if (typeof task === "string") {
+              const title = task.trim();
+              return title ? { title } : null;
+            }
+
+            const title = String(task?.title ?? "").trim();
+            if (!title) return null;
+
+            const guidance = String(task?.guidance ?? "").trim();
+            return { title, guidance: guidance || undefined };
+          })
+          .filter((item): item is SuggestedAction => Boolean(item))
+          .slice(0, 5)
+      : [];
 
     let manifestationId: string;
     try {
@@ -236,7 +256,21 @@ export class ImanSyncService {
     const startTime = Date.now();
     this.logger.log(`Extracting themes for user ${userId}`);
 
-    const themes = await this.zhipu.extractThemes(dto.intentText);
+    let themes: string[] = [];
+    try {
+      themes = await this.zhipu.extractThemes(dto.intentText);
+    } catch (err) {
+      this.logger.warn(
+        "Theme extraction failed, using quick fallback themes",
+        err instanceof Error ? err.message : err,
+      );
+      themes = this.extractQuickThemes(dto.intentText);
+    }
+
+    if (!Array.isArray(themes) || themes.length === 0) {
+      themes = this.extractQuickThemes(dto.intentText);
+    }
+
     this.logger.log(`Themes extracted: ${themes.join(", ")}`);
 
     const allVerses = await this.searchVersesForThemes(themes);
@@ -288,7 +322,21 @@ export class ImanSyncService {
     const startTime = Date.now();
     this.logger.log(`Extracting vision themes for user ${userId}`);
 
-    const themes = await this.zhipu.extractThemesVision(intentText, imageBase64, mimeType);
+    let themes: string[] = [];
+    try {
+      themes = await this.zhipu.extractThemesVision(intentText, imageBase64, mimeType);
+    } catch (err) {
+      this.logger.warn(
+        "Vision theme extraction failed, using quick fallback themes",
+        err instanceof Error ? err.message : err,
+      );
+      themes = this.extractQuickThemes(intentText);
+    }
+
+    if (!Array.isArray(themes) || themes.length === 0) {
+      themes = this.extractQuickThemes(intentText);
+    }
+
     this.logger.log(`Vision themes extracted: ${themes.join(", ")}`);
 
     const allVerses = await this.searchVersesForThemes(themes);
