@@ -47,6 +47,17 @@ interface AudioEdition {
   englishName: string;
 }
 
+interface FoundationRecitation {
+  id: number;
+  reciter_name: string;
+  style?: string;
+}
+
+interface FoundationAudioFile {
+  verse_key?: string;
+  url?: string;
+}
+
 interface RandomAyahResult {
   number: number;
   text: string;
@@ -70,6 +81,15 @@ export class QuranApiService {
   private readonly baseUrl =
     process.env.QURAN_API_BASE_URL || "https://api.quran.com/api/v4";
   private readonly apiKey = process.env.QURAN_FOUNDATION_API_KEY || "";
+  private readonly foundationBaseUrl =
+    process.env.QURAN_FOUNDATION_CONTENT_API_URL ||
+    "https://apis.quran.foundation/content/api/v4";
+  private readonly foundationClientId =
+    process.env.QURAN_FOUNDATION_CLIENT_ID || "";
+  private readonly foundationAuthToken =
+    process.env.QURAN_FOUNDATION_AUTH_TOKEN || "";
+  private readonly foundationAudioBaseUrl =
+    process.env.QURAN_FOUNDATION_AUDIO_BASE_URL || "https://audio.qurancdn.com";
 
   constructor(
     private readonly redis: RedisService,
@@ -349,6 +369,71 @@ export class QuranApiService {
     return `https://cdn.islamic.network/quran/audio/128/${reciter}/${paddedSurah}.mp3`;
   }
 
+  async getFoundationRecitations(): Promise<FoundationRecitation[]> {
+    const headers = this.getFoundationHeaders();
+    if (!headers) {
+      return [];
+    }
+
+    try {
+      const response = await axios.get<{ recitations?: FoundationRecitation[] }>(
+        `${this.foundationBaseUrl}/resources/recitations`,
+        {
+          headers,
+          timeout: 9000,
+        },
+      );
+
+      return (response.data?.recitations || []).filter(
+        (r) => typeof r.id === "number" && !!r.reciter_name,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch Foundation recitations: ${error instanceof Error ? error.message : error}`,
+      );
+      return [];
+    }
+  }
+
+  async getFoundationAyahAudioUrl(
+    recitationId: number,
+    ayahKey: string,
+  ): Promise<string | null> {
+    const headers = this.getFoundationHeaders();
+    if (!headers) {
+      return null;
+    }
+
+    if (!/^\d+:\d+$/.test(ayahKey)) {
+      return null;
+    }
+
+    try {
+      const response = await axios.get<{ audio_files?: FoundationAudioFile[] }>(
+        `${this.foundationBaseUrl}/recitations/${recitationId}/by_ayah/${ayahKey}`,
+        {
+          headers,
+          timeout: 9000,
+        },
+      );
+
+      const files = response.data?.audio_files || [];
+      const target = files.find(
+        (f) => f.verse_key === ayahKey && typeof f.url === "string" && f.url.length > 0,
+      );
+      if (!target?.url) {
+        return null;
+      }
+
+      return this.toAbsoluteFoundationAudioUrl(target.url);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch Foundation ayah audio for recitation ${recitationId}, ayah ${ayahKey}: ${error instanceof Error ? error.message : error}`,
+      );
+      return null;
+    }
+  }
+
   async getRandomAyah(): Promise<RandomAyahResult | null> {
     const randomAyah = Math.floor(Math.random() * 6236) + 1;
     try {
@@ -380,6 +465,28 @@ export class QuranApiService {
     };
     if (this.apiKey) headers["x-api-key"] = this.apiKey;
     return headers;
+  }
+
+  private getFoundationHeaders(): Record<string, string> | null {
+    if (!this.foundationClientId || !this.foundationAuthToken) {
+      return null;
+    }
+
+    return {
+      "Content-Type": "application/json",
+      "x-client-id": this.foundationClientId,
+      "x-auth-token": this.foundationAuthToken,
+    };
+  }
+
+  private toAbsoluteFoundationAudioUrl(pathOrUrl: string): string {
+    if (/^https?:\/\//i.test(pathOrUrl)) {
+      return pathOrUrl;
+    }
+
+    const cleanBase = this.foundationAudioBaseUrl.replace(/\/$/, "");
+    const cleanPath = pathOrUrl.replace(/^\//, "");
+    return `${cleanBase}/${cleanPath}`;
   }
 
   private stripHtmlTags(html: string): string {

@@ -4,6 +4,7 @@ import {
   ActivityIndicator, TextInput,
 } from "react-native";
 import { Headphones } from "lucide-react-native";
+import { apiGet } from "../../lib/api";
 
 const glass = (radius = 24) => ({
   backgroundColor: "rgba(255,255,255,0.45)",
@@ -19,23 +20,22 @@ interface Reciter {
   id: number;
   name: string;
   subtitle: string;
-  cdnId: string;
-  everyayahPath: string;
+  style: string;
   initials: string;
   bg: string;
 }
 
-const STATIC_RECITERS: Reciter[] = [
-  { id: 7,  name: "Mishary Rashid Alafasy",     subtitle: "Kuwait · Murattal",    cdnId: "ar.alafasy",              everyayahPath: "Alafasy_128kbps",                  initials: "MA", bg: "#7c3aed" },
-  { id: 3,  name: "Abdur-Rahman as-Sudais",     subtitle: "Makkah Imam",          cdnId: "ar.abdurrahmansudais",    everyayahPath: "Sudais_128kbps",                   initials: "AS", bg: "#0e6030" },
-  { id: 6,  name: "Maher Al-Muaiqly",           subtitle: "Madinah Imam",         cdnId: "ar.mahermuaiqly",         everyayahPath: "MaherAlMuaiqly128",                initials: "MM", bg: "#1d4ed8" },
-  { id: 1,  name: "AbdulBaset AbdulSamad",      subtitle: "Egypt · Mujawwad",     cdnId: "ar.abdulsamad",           everyayahPath: "AbdulSamad_128kbps",               initials: "AB", bg: "#92400e" },
-  { id: 9,  name: "Mohamed Siddiq al-Minshawi", subtitle: "Egypt · Murattal",     cdnId: "ar.minshawi",             everyayahPath: "Minshawy_Murattal_128kbps",        initials: "MS", bg: "#334155" },
-  { id: 4,  name: "Saud ash-Shuraym",           subtitle: "Makkah Imam",          cdnId: "ar.saudshuraym",          everyayahPath: "Saud_ash-Shuraym_128kbps",         initials: "SS", bg: "#065f46" },
-  { id: 10, name: "Abu Bakr al-Shatri",         subtitle: "Saudi · Murattal",     cdnId: "ar.shaatree",             everyayahPath: "abu_bakr_ash-shaatree_128kbps",    initials: "BS", bg: "#7e22ce" },
-  { id: 11, name: "Hani ar-Rifai",              subtitle: "Saudi · Murattal",     cdnId: "ar.hanirifai",            everyayahPath: "hani_ar-rifai_128kbps",            initials: "HR", bg: "#0f766e" },
-  { id: 12, name: "Saad Al-Ghamdi",             subtitle: "Saudi · Murattal",     cdnId: "ar.saadalghamdi",         everyayahPath: "Ghamadi_40kbps",                  initials: "SG", bg: "#1e40af" },
-  { id: 13, name: "Yasser Al-Dosari",           subtitle: "Saudi · Murattal",     cdnId: "ar.yasseraldossari",      everyayahPath: "Yasser_Ad-Dussary_128kbps",        initials: "YD", bg: "#9f1239" },
+const RECITER_COLORS = [
+  "#7c3aed",
+  "#0e6030",
+  "#1d4ed8",
+  "#92400e",
+  "#334155",
+  "#065f46",
+  "#7e22ce",
+  "#0f766e",
+  "#1e40af",
+  "#9f1239",
 ];
 
 const DHIKR_LIST = [
@@ -74,7 +74,8 @@ function stripHtml(text: string) {
 
 
 export default function TafakkurHubScreen() {
-  const [reciters]                       = useState<Reciter[]>(STATIC_RECITERS);
+  const [reciters, setReciters]          = useState<Reciter[]>([]);
+  const [loadingReciters, setLoadingReciters] = useState(true);
   const [surahs, setSurahs]             = useState<Surah[]>([]);
   const [surahSearch, setSurahSearch]   = useState("");
   const [loadingSurahs, setLoadingSurahs] = useState(true);
@@ -97,9 +98,48 @@ export default function TafakkurHubScreen() {
   const intervalRef   = useRef<any>(null);
   const ambientStopRef = useRef<(() => void) | null>(null);
   const requestIdRef  = useRef(0); // cancels stale loadAndPlay calls
+  const audioUrlCacheRef = useRef<Record<string, { url: string; reciterIdUsed: number }>>({});
 
-  // Load 114 surahs from Quran.com API
+  const toInitials = (name: string) => {
+    const words = name
+      .replace(/[^A-Za-z\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length === 0) return "QR";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  };
+
+  const loadReciters = useCallback(async () => {
+    setLoadingReciters(true);
+    try {
+      const response = await apiGet<{ data: Array<{ id: number; name: string; subtitle?: string; style?: string }> }>(
+        "/sakinah/reciters",
+      );
+
+      const mapped: Reciter[] = (response.data || []).map((r, index) => ({
+        id: r.id,
+        name: r.name,
+        subtitle: r.subtitle || `Recitation · ${r.style || "Murattal"}`,
+        style: r.style || "Murattal",
+        initials: toInitials(r.name),
+        bg: RECITER_COLORS[index % RECITER_COLORS.length],
+      }));
+
+      setReciters(mapped);
+      setActiveReciter(0);
+    } catch {
+      setReciters([]);
+      setAudioError("Unable to load reciters right now.");
+    } finally {
+      setLoadingReciters(false);
+    }
+  }, []);
+
+  // Load reciters and 114 surahs
   useEffect(() => {
+    loadReciters();
+
     const load = async () => {
       setLoadingSurahs(true);
       try {
@@ -125,7 +165,7 @@ export default function TafakkurHubScreen() {
       if (intervalRef.current) clearInterval(intervalRef.current);
       ambientStopRef.current?.();
     };
-  }, []);
+  }, [loadReciters]);
 
   // Fetch verses when surah changes (Quran Foundation API supports CORS)
   useEffect(() => {
@@ -171,12 +211,22 @@ export default function TafakkurHubScreen() {
     setIsLoadingAudio(false); setAudioError(null); setPendingPlay(false);
   }, []);
 
-  // Build everyayah.com verse audio URL
-  const verseUrl = (reciterPath: string, surahNum: number, ayahNum: number) => {
-    const s = String(surahNum).padStart(3, '0');
-    const a = String(ayahNum).padStart(3, '0');
-    return `https://everyayah.com/data/${reciterPath}/${s}${a}.mp3`;
-  };
+  const fetchVerseAudioUrl = useCallback(async (reciterId: number, ayahKey: string) => {
+    const cacheKey = `${reciterId}:${ayahKey}`;
+    const fromCache = audioUrlCacheRef.current[cacheKey];
+    if (fromCache) {
+      return fromCache;
+    }
+
+    const response = await apiGet<{ url: string; reciterIdUsed: number; fallbackUsed: boolean }>(
+      "/sakinah/verse-audio-url",
+      { reciterId: String(reciterId), ayahKey },
+    );
+
+    const value = { url: response.url, reciterIdUsed: response.reciterIdUsed };
+    audioUrlCacheRef.current[cacheKey] = value;
+    return value;
+  }, []);
 
   const loadAndPlayVerses = useCallback((reciterIdx: number, _surah: Surah, startIdx: number) => {
     if (Platform.OS !== "web") return;
@@ -193,7 +243,7 @@ export default function TafakkurHubScreen() {
     const verses = surahVerses;
     if (verses.length === 0) { setIsLoadingAudio(false); return; }
 
-    const playVerse = (idx: number) => {
+    const playVerse = async (idx: number) => {
       if (thisId !== requestIdRef.current || idx >= verses.length) {
         setIsPlaying(false);
         setIsLoadingAudio(false);
@@ -204,10 +254,23 @@ export default function TafakkurHubScreen() {
       setProgress(Math.round((idx / verses.length) * 100));
 
       const verse = verses[idx];
-      const [surahNum, ayahNum] = verse.verseKey.split(':').map(Number);
-      const url = verseUrl(reciter.everyayahPath, surahNum, ayahNum);
+      let resolved: { url: string; reciterIdUsed: number };
+      try {
+        resolved = await fetchVerseAudioUrl(reciter.id, verse.verseKey);
+      } catch {
+        setIsLoadingAudio(false);
+        if (thisId === requestIdRef.current) setTimeout(() => playVerse(idx + 1), 300);
+        return;
+      }
 
-      const audio = new Audio(url);
+      if (resolved.reciterIdUsed !== reciter.id) {
+        const fallbackReciterIndex = reciters.findIndex((r) => r.id === resolved.reciterIdUsed);
+        if (fallbackReciterIndex >= 0) {
+          setActiveReciter(fallbackReciterIndex);
+        }
+      }
+
+      const audio = new Audio(resolved.url);
       audioRef.current = audio;
 
       audio.oncanplay = () => {
@@ -238,9 +301,14 @@ export default function TafakkurHubScreen() {
 
     playVerse(startIdx);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reciters, surahVerses]);
+  }, [fetchVerseAudioUrl, reciters, surahVerses]);
 
   const togglePlay = () => {
+    if (reciters.length === 0) {
+      setAudioError("No reciter available for playback.");
+      return;
+    }
+
     if (!audioRef.current?.src && activeSurah) {
       if (surahVerses.length > 0) {
         loadAndPlayVerses(activeReciter, activeSurah, currentVerseIdx);
@@ -323,28 +391,42 @@ export default function TafakkurHubScreen() {
             <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#5b5f65", fontWeight: "700" }}>
               Curated Reciters
             </Text>
-            {reciters.map((r, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => { setActiveReciter(i); if (activeSurah && surahVerses.length > 0) loadAndPlayVerses(i, activeSurah, 0); }}
-                activeOpacity={0.85}
-                style={[glass(20), { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, ...(activeReciter === i ? { backgroundColor: "rgba(169,247,183,0.18)", borderColor: "rgba(22,101,52,0.3)" } : {}) }]}
-              >
-                {/* Initials avatar */}
-                <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: r.bg, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 18, fontWeight: '800', color: '#fff' }}>{r.initials}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 14, fontWeight: "700", color: "#2f3338" }}>{r.name}</Text>
-                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, color: "#5b5f65", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{r.subtitle}</Text>
-                </View>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: activeReciter === i ? "#166534" : "rgba(229,223,248,0.6)", alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontSize: 18, color: activeReciter === i ? "#fff" : "#2f3338" }}>
-                    {activeReciter === i && isPlaying ? "⏸" : "▶"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {loadingReciters ? (
+              <View style={[glass(20), { padding: 20, flexDirection: "row", alignItems: "center", gap: 10 }]}>
+                <ActivityIndicator color="#166534" />
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#5b5f65" }}>
+                  Loading reciters...
+                </Text>
+              </View>
+            ) : reciters.length === 0 ? (
+              <View style={[glass(20), { padding: 20 }]}>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#991b1b" }}>
+                  Reciters are unavailable. Please try again shortly.
+                </Text>
+              </View>
+            ) : (
+              reciters.map((r, i) => (
+                <TouchableOpacity
+                  key={r.id}
+                  onPress={() => { setActiveReciter(i); if (activeSurah && surahVerses.length > 0) loadAndPlayVerses(i, activeSurah, 0); }}
+                  activeOpacity={0.85}
+                  style={[glass(20), { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, ...(activeReciter === i ? { backgroundColor: "rgba(169,247,183,0.18)", borderColor: "rgba(22,101,52,0.3)" } : {}) }]}
+                >
+                  <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: r.bg, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 18, fontWeight: "800", color: "#fff" }}>{r.initials}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 14, fontWeight: "700", color: "#2f3338" }}>{r.name}</Text>
+                    <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, color: "#5b5f65", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{r.subtitle}</Text>
+                  </View>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: activeReciter === i ? "#166534" : "rgba(229,223,248,0.6)", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 18, color: activeReciter === i ? "#fff" : "#2f3338" }}>
+                      {activeReciter === i && isPlaying ? "⏸" : "▶"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
 
           {/* Surah Selector */}
