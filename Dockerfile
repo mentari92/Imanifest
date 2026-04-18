@@ -2,6 +2,9 @@
 FROM node:20-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Native deps for packages that may compile from source (e.g., bcrypt)
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 # Copy workspace config first (for Docker layer caching)
