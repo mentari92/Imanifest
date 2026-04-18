@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { apiPost, apiPatch } from '../lib/api';
+import { apiGet, apiPost, apiPatch } from '../lib/api';
 
 const LAST_MANIFESTATION_KEY = 'last_manifestation_id';
 
@@ -54,6 +54,10 @@ interface AnalyzeResponse {
   tasks: string[];
 }
 
+interface HistoryResponse {
+  manifestations?: Array<{ id: string }>;
+}
+
 interface RawTask {
   id: string;
   description: string;
@@ -95,12 +99,28 @@ export function useDuaToDo() {
   });
 
   const generateTasks = useCallback(async (intention: string) => {
+    const sanitizedIntention = intention.replace(/\s+/g, ' ').trim();
+    if (!sanitizedIntention) {
+      setError('Please enter your dua or intention');
+      return {
+        tasks: [],
+        relevantVerses: [],
+      };
+    }
+    if (sanitizedIntention.length > 500) {
+      setError('Intention is too long. Please keep it under 500 characters.');
+      return {
+        tasks: [],
+        relevantVerses: [],
+      };
+    }
+
     setLoading(true);
     setError(null);
     try {
       const analyzeResponse = await apiPost<AnalyzeResponse>(
         '/iman-sync/analyze',
-        { intentText: intention },
+        { intentText: sanitizedIntention },
       );
 
       const taskResponse = await apiPost<{ tasks: RawTask[] }>(
@@ -134,7 +154,22 @@ export function useDuaToDo() {
   }, []);
 
   const fetchTasks = useCallback(async (manifestationId?: string) => {
-    const resolvedId = manifestationId ?? loadLastManifestationId();
+    let resolvedId = manifestationId ?? loadLastManifestationId();
+
+    // Fallback: if no local manifestation ID, try loading latest saved manifestation.
+    if (!resolvedId) {
+      try {
+        const history = await apiGet<HistoryResponse>('/iman-sync/history');
+        const latestId = history?.manifestations?.[0]?.id;
+        if (latestId) {
+          resolvedId = latestId;
+          saveLastManifestationId(latestId);
+        }
+      } catch (_) {
+        // Non-fatal: keep empty state if history is unavailable.
+      }
+    }
+
     if (!resolvedId) {
       setTasks([]);
       setVerses([]);
