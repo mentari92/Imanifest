@@ -98,6 +98,8 @@ export default function TafakkurHubScreen() {
   const [pendingPlay, setPendingPlay]   = useState(false);
   const [progressBarWidth, setProgressBarWidth] = useState(0);
   const [scrubProgress, setScrubProgress] = useState<number | null>(null);
+  const [autoPlayMode, setAutoPlayMode] = useState<'stop' | 'loop'>('stop');
+  const [autoPlaySurahIdx, setAutoPlaySurahIdx] = useState<number | null>(null);
 
   const audioRef      = useRef<HTMLAudioElement | null>(null);
   const intervalRef   = useRef<any>(null);
@@ -105,6 +107,7 @@ export default function TafakkurHubScreen() {
   const requestIdRef  = useRef(0); // cancels stale loadAndPlay calls
   const audioUrlCacheRef = useRef<Record<string, { url: string; reciterIdUsed: number }>>({});
   const scrubProgressRef = useRef<number | null>(null);
+  const autoPlayActiveSurahRef = useRef<Surah | null>(null); // track active surah during auto-play
 
   const toInitials = (name: string) => {
     const words = name
@@ -321,7 +324,38 @@ export default function TafakkurHubScreen() {
       };
       audio.onended = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        if (thisId === requestIdRef.current) playVerse(idx + 1);
+        if (thisId === requestIdRef.current) {
+          // Check if we're at the last verse of current surah
+          if (idx + 1 >= verses.length) {
+            // We reached the end of this surah
+            if (autoPlayMode === 'loop') {
+              // Find next surah: if at surah 114, loop to surah 1, otherwise go to next
+              const currentSurahNum = _surah.number;
+              const nextSurahNum = currentSurahNum === 114 ? 1 : currentSurahNum + 1;
+              const nextSurah = surahs.find(s => s.number === nextSurahNum);
+              
+              if (nextSurah) {
+                // Mark that we're auto-advancing
+                autoPlayActiveSurahRef.current = nextSurah;
+                setActiveSurah(nextSurah);
+                setPendingPlay(true);
+              } else {
+                setIsPlaying(false);
+                setIsLoadingAudio(false);
+                setProgress(100);
+              }
+            } else {
+              // autoPlayMode === 'stop': just stop
+              setIsPlaying(false);
+              setIsLoadingAudio(false);
+              setProgress(100);
+              autoPlayActiveSurahRef.current = null;
+            }
+          } else {
+            // Continue to next verse in same surah
+            playVerse(idx + 1);
+          }
+        }
       };
       audio.onerror = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -333,7 +367,7 @@ export default function TafakkurHubScreen() {
 
     playVerse(startIdx);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchVerseAudioUrl, playbackRate, reciters, surahVerses]);
+  }, [fetchVerseAudioUrl, playbackRate, reciters, surahVerses, surahs, autoPlayMode]);
 
   const seekToProgressFraction = useCallback((fraction: number) => {
     if (!activeSurah || surahVerses.length === 0) return;
@@ -379,6 +413,11 @@ export default function TafakkurHubScreen() {
   const togglePlay = () => {
     if (reciters.length === 0) {
       setAudioError("No reciter available for playback.");
+      return;
+    }
+    
+    if (!activeSurah) {
+      setAudioError("Please select a surah first.");
       return;
     }
 
@@ -459,6 +498,27 @@ export default function TafakkurHubScreen() {
             <Text style={{ fontFamily: "Noto Serif", fontSize: 14, fontStyle: "italic", color: "#5b5f65", lineHeight: 22 }}>
               Contemplate the divine through recitation, reflection, and remembrance.
             </Text>
+          </View>
+
+          {/* Setup Instructions */}
+          <View style={[glass(20), { padding: 20, gap: 12, backgroundColor: "rgba(169,247,183,0.08)" }]}>
+            <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, fontWeight: "700", color: "#0e6030" }}>
+              Getting Started:
+            </Text>
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 16, fontWeight: "800", color: "#166534" }}>1</Text>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#2f3338", flex: 1, lineHeight: 18 }}>Select your preferred reciter below</Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 16, fontWeight: "800", color: "#166534" }}>2</Text>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#2f3338", flex: 1, lineHeight: 18 }}>Choose a Surah to begin meditation</Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 16, fontWeight: "800", color: "#166534" }}>3</Text>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#2f3338", flex: 1, lineHeight: 18 }}>Press play and configure auto-advance settings</Text>
+              </View>
+            </View>
           </View>
 
           {/* Curated Reciters */}
@@ -555,20 +615,20 @@ export default function TafakkurHubScreen() {
           </View>
 
           {/* Audio Player */}
-          {showPlayer && activeSurah ? (
-            <View style={[glass(24), { padding: 24, gap: 16 }]}>
+          {(showPlayer || !activeSurah) && (
+            <View style={[glass(24), { padding: 24, gap: 16, opacity: !activeSurah ? 0.6 : 1 }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <Text style={{ fontSize: 20 }}>🎵</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 13, fontWeight: "700", color: "#2f3338" }}>
-                    {activeSurah.englishName} · {reciters[activeReciter]?.name || "Unknown"}
+                    {activeSurah ? `${activeSurah.englishName} · ${reciters[activeReciter]?.name || "Unknown"}` : "Select a surah to begin"}
                   </Text>
-                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, color: audioError ? "#991b1b" : "#5b5f65", marginTop: 2 }}>
-                    {isLoadingAudio ? "Loading audio..." : audioError ? audioError : `${formatTime(currentTime)} / ${formatTime(duration)}`}
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, color: audioError ? "#991b1b" : !activeSurah ? "#5b5f65" : "#5b5f65", marginTop: 2 }}>
+                    {!activeSurah ? "👉 Choose a surah from the list above" : isLoadingAudio ? "Loading audio..." : audioError ? audioError : `${formatTime(currentTime)} / ${formatTime(duration)}`}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={togglePlay} disabled={isLoadingAudio}
-                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#166534", alignItems: "center", justifyContent: "center" }}>
+                <TouchableOpacity onPress={togglePlay} disabled={!activeSurah || isLoadingAudio}
+                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: !activeSurah ? "#c5c5c5" : "#166534", alignItems: "center", justifyContent: "center" }}>
                   {isLoadingAudio ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ fontSize: 20, color: "#fff" }}>{isPlaying ? "⏸" : "▶"}</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={stopAudio}
@@ -579,6 +639,20 @@ export default function TafakkurHubScreen() {
                   style={{ minWidth: 58, height: 36, borderRadius: 18, backgroundColor: "rgba(229,223,248,0.6)", alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }}>
                   <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, fontWeight: "700", color: "#2f3338" }}>{playbackRate}x</Text>
                 </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => setAutoPlayMode(autoPlayMode === 'stop' ? 'loop' : 'stop')}
+                  style={{ minWidth: 48, height: 36, borderRadius: 18, backgroundColor: autoPlayMode === 'loop' ? "rgba(22,165,52,0.3)" : "rgba(229,223,248,0.6)", alignItems: "center", justifyContent: "center", paddingHorizontal: 8, borderWidth: 1, borderColor: autoPlayMode === 'loop' ? "rgba(22,165,52,0.5)" : "transparent" }}>
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: autoPlayMode === 'loop' ? "#0e6030" : "#524f63" }}>
+                    {autoPlayMode === 'loop' ? '🔁' : '⏭'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Auto-play info */}
+              <View style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: autoPlayMode === 'loop' ? "rgba(169,247,183,0.1)" : "rgba(229,223,248,0.1)", borderRadius: 12 }}>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, color: autoPlayMode === 'loop' ? "#0e6030" : "#524f63", textAlign: "center" }}>
+                  {autoPlayMode === 'loop' ? '🔁 Auto-play enabled: Will loop through all surahs' : '⏭ Auto-play disabled: Will stop at end of surah'}
+                </Text>
               </View>
               {!audioError && (
                 <View
