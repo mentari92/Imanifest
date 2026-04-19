@@ -123,7 +123,23 @@ export default function TafakkurHubScreen() {
         "/sakinah/reciters",
       );
 
-      const mapped: Reciter[] = (response.data || []).map((r, index) => ({
+      const normalizeReciterName = (value: string) =>
+        value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+      const reciterPriority = (reciter: { name: string }) => {
+        const name = normalizeReciterName(reciter.name);
+        if (name.includes("mishari") && name.includes("afasy")) return 0;
+        if (name.includes("abu bakr") && name.includes("shatri")) return 1;
+        return 2;
+      };
+
+      const ordered = [...(response.data || [])].sort((a, b) => {
+        const byPriority = reciterPriority(a) - reciterPriority(b);
+        if (byPriority !== 0) return byPriority;
+        return a.name.localeCompare(b.name);
+      });
+
+      const mapped: Reciter[] = ordered.map((r, index) => ({
         id: r.id,
         name: r.name,
         subtitle: r.subtitle || `Recitation · ${r.style || "Murattal"}`,
