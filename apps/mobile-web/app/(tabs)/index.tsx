@@ -12,9 +12,70 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useDashboard } from '../../hooks/useDashboard';
 import {
-  Heart, Sparkles, ListChecks, Headphones,
+  Heart, Sparkles, ListChecks,
   Bell, User, Sun, BookOpen, Star,
 } from 'lucide-react-native';
+
+type PrayerKey = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
+
+const PRAYER_SEQUENCE: PrayerKey[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+const parseClockMinutes = (value: string): number | null => {
+  const match = value.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hh = Number(match[1]);
+  const mm = Number(match[2]);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  return hh * 60 + mm;
+};
+
+const to12hLabel = (value: string): string => {
+  const match = value.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return value;
+  const hh = Number(match[1]);
+  const mm = match[2];
+  const h12 = hh % 12 || 12;
+  const suffix = hh >= 12 ? 'PM' : 'AM';
+  return `${h12}:${mm} ${suffix}`;
+};
+
+const formatRemaining = (minutesLeft: number): string => {
+  const hh = Math.floor(minutesLeft / 60);
+  const mm = minutesLeft % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+};
+
+const resolvePrayerState = (timings: Record<PrayerKey, string>, now: Date) => {
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const entries = PRAYER_SEQUENCE
+    .map((name) => ({ name, minutes: parseClockMinutes(timings[name]), raw: timings[name] }))
+    .filter((item): item is { name: PrayerKey; minutes: number; raw: string } => item.minutes !== null);
+
+  if (entries.length === 0) {
+    return {
+      currentPrayer: 'Dhuhr',
+      currentTimeLabel: '12:45 PM',
+      nextPrayer: 'Asr',
+      remaining: '02:42',
+    };
+  }
+
+  let current = entries[entries.length - 1];
+  for (const entry of entries) {
+    if (entry.minutes <= nowMinutes) current = entry;
+  }
+
+  let next = entries.find((entry) => entry.minutes > nowMinutes) || entries[0];
+  let remainingMinutes = next.minutes - nowMinutes;
+  if (remainingMinutes <= 0) remainingMinutes += 24 * 60;
+
+  return {
+    currentPrayer: current.name,
+    currentTimeLabel: to12hLabel(current.raw),
+    nextPrayer: next.name,
+    remaining: formatRemaining(remainingMinutes),
+  };
+};
 
 // ── Stitch Celestial Ether tokens ──────────────────────────────────────────
 const C = {
@@ -53,10 +114,10 @@ const glass = {
 };
 
 const QUICK_ACCESS = [
-  { label: 'Qalb', desc: 'Check-in with your spirit', route: '/(tabs)/qalb', Icon: Heart, iconBg: '#fce7f3', iconColor: '#be185d' },
-  { label: 'Imanifest', desc: 'Set your daily intention', route: '/(tabs)/imanifest', Icon: Sparkles, iconBg: '#dbeafe', iconColor: '#1d4ed8' },
+  { label: 'Qalb', desc: 'Check-in with your spirit', route: '/(tabs)/qalb', Icon: Heart, iconBg: '#ffe4e6', iconColor: '#e11d48' },
+  { label: 'Imanifest', desc: 'Set your daily intention', route: '/(tabs)/imanifest', Icon: Sparkles, iconBg: '#ede9fe', iconColor: '#7c3aed' },
   { label: 'Dua-to-Do', desc: 'Act on your manifestations', route: '/(tabs)/dua-todo', Icon: ListChecks, iconBg: '#fef3c7', iconColor: '#b45309' },
-  { label: 'Tafakkur', desc: 'Find tranquility in Quran audio', route: '/(tabs)/tafakkur', Icon: Headphones, iconBg: '#d1fae5', iconColor: '#065f46' },
+  { label: 'Tafakkur', desc: 'Find tranquility in Quran audio', route: '/(tabs)/tafakkur', iconEmoji: '🧘', iconBg: '#d1fae5', iconColor: '#065f46' },
 ];
 
 const RECENT_INTENTIONS = [
@@ -70,6 +131,70 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { data, fetchDashboard, isOfflineMode } = useDashboard();
   const [refreshing, setRefreshing] = useState(false);
+  const [prayerTimings, setPrayerTimings] = useState<Record<PrayerKey, string> | null>(null);
+  const [clockTick, setClockTick] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockTick(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const saveTimingsFromCoords = async (latitude: number, longitude: number) => {
+      const resp = await fetch(
+        `https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=20`,
+      );
+      const json = await resp.json();
+      const t = json?.data?.timings;
+      if (!t) return;
+
+      const nextTimings: Record<PrayerKey, string> = {
+        Fajr: String(t.Fajr || ''),
+        Dhuhr: String(t.Dhuhr || ''),
+        Asr: String(t.Asr || ''),
+        Maghrib: String(t.Maghrib || ''),
+        Isha: String(t.Isha || ''),
+      };
+
+      if (!cancelled) {
+        setPrayerTimings(nextTimings);
+      }
+    };
+
+    const fetchByIpFallback = async () => {
+      try {
+        const ipResp = await fetch('https://ipapi.co/json/');
+        const ipJson = await ipResp.json();
+        const lat = Number(ipJson?.latitude);
+        const lon = Number(ipJson?.longitude);
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+          await saveTimingsFromCoords(lat, lon);
+        }
+      } catch {
+        // Keep static fallback in UI when location APIs are unavailable.
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          void saveTimingsFromCoords(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          void fetchByIpFallback();
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+      );
+    } else {
+      void fetchByIpFallback();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     void fetchDashboard().catch(() => undefined);
@@ -86,6 +211,14 @@ export default function DashboardScreen() {
   const completed = data?.stats?.completedDuaTasks ?? 0;
   const total = data?.stats?.totalDuaTasks ?? 15;
   const alignPct = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 80;
+  const prayerState = prayerTimings
+    ? resolvePrayerState(prayerTimings, new Date(clockTick))
+    : {
+        currentPrayer: 'Dhuhr',
+        currentTimeLabel: '12:45 PM',
+        nextPrayer: 'Asr',
+        remaining: '02:42',
+      };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -146,14 +279,14 @@ export default function DashboardScreen() {
               <Sun size={26} color={C.primary} />
             </View>
             <View>
-              <Text style={s.prayerName}>Dhuhr</Text>
-              <Text style={s.prayerMeta}>Current Prayer · 12:45 PM</Text>
+              <Text style={s.prayerName}>{prayerState.currentPrayer}</Text>
+              <Text style={s.prayerMeta}>Current Prayer · {prayerState.currentTimeLabel}</Text>
             </View>
           </View>
           <View style={s.prayerRight}>
-            <Text style={s.prayerNextLabel}>Next: Asr in</Text>
+            <Text style={s.prayerNextLabel}>Next: {prayerState.nextPrayer} in</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-              <Text style={s.prayerCountdown}>02:42</Text>
+              <Text style={s.prayerCountdown}>{prayerState.remaining}</Text>
               <Text style={s.prayerRemainingLabel}>remaining</Text>
             </View>
           </View>
@@ -164,7 +297,7 @@ export default function DashboardScreen() {
           <Text style={s.sectionTitle}>Quick Access</Text>
         </View>
         <View style={s.quickGrid}>
-          {QUICK_ACCESS.map(({ label, desc, route, Icon, iconBg, iconColor }) => (
+          {QUICK_ACCESS.map(({ label, desc, route, Icon, iconEmoji, iconBg, iconColor }) => (
             <TouchableOpacity
               key={label}
               style={[glass, s.quickCard]}
@@ -172,7 +305,11 @@ export default function DashboardScreen() {
               activeOpacity={0.85}
             >
               <View style={[s.quickIconWrap, { backgroundColor: iconBg }]}>
-                <Icon size={22} color={iconColor} />
+                {Icon ? (
+                  <Icon size={22} color={iconColor} />
+                ) : (
+                  <Text style={{ fontSize: 20 }}>{iconEmoji}</Text>
+                )}
               </View>
               <Text style={s.quickLabel}>{label}</Text>
               <Text style={s.quickDesc}>{desc}</Text>
