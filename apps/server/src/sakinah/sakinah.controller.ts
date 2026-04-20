@@ -8,7 +8,7 @@ import { SakinahService } from './sakinah.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { Public } from '../auth/public.decorator';
 
-@Controller('sakinah')
+@Controller(['sakinah', 'tafakkur'])
 @UseGuards(JwtAuthGuard)
 export class SakinahController {
   constructor(private readonly sakinahService: SakinahService) {}

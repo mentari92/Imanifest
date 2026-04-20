@@ -99,7 +99,7 @@ export function useImanSync() {
     setError(null);
     try {
       const response = await apiPost<AnalyzeResponse>(
-        '/iman-sync/analyze',
+        '/imanifest/analyze',
         { intentText: text },
       );
 
@@ -132,7 +132,7 @@ export function useImanSync() {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiGet<HistoryResponse>('/iman-sync/history');
+        const response = await apiGet<HistoryResponse>('/imanifest/history');
         const mapped = Array.isArray(response?.manifestations)
           ? response.manifestations.map((item) => ({
               id: item.id,
