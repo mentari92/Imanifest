@@ -119,7 +119,7 @@ export function useDuaToDo() {
     setError(null);
     try {
       const analyzeResponse = await apiPost<AnalyzeResponse>(
-        '/iman-sync/analyze',
+        '/imanifest/analyze',
         { intentText: sanitizedIntention },
       );
 
@@ -159,7 +159,7 @@ export function useDuaToDo() {
     // Fallback: if no local manifestation ID, try loading latest saved manifestation.
     if (!resolvedId) {
       try {
-        const history = await apiGet<HistoryResponse>('/iman-sync/history');
+        const history = await apiGet<HistoryResponse>('/imanifest/history');
         const latestId = history?.manifestations?.[0]?.id;
         if (latestId) {
           resolvedId = latestId;

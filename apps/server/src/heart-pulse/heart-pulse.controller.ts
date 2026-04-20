@@ -26,7 +26,7 @@ const ALLOWED_AUDIO_MIME_TYPES = [
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024;
 const MAX_TRANSCRIPT_LENGTH = 5000;
 
-@Controller("heart-pulse")
+@Controller(["heart-pulse", "qalb"])
 @UseGuards(JwtAuthGuard)
 export class HeartPulseController {
   constructor(private readonly heartPulseService: HeartPulseService) {}

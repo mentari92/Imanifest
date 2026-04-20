@@ -25,7 +25,7 @@ const TEXT_RATE_LIMIT = 10;
 const VISION_RATE_LIMIT = 5;
 const RATE_WINDOW_SECONDS = 3600;
 
-@Controller("iman-sync")
+@Controller(["iman-sync", "imanifest"])
 @UseGuards(JwtAuthGuard)
 export class ImanSyncController {
   constructor(

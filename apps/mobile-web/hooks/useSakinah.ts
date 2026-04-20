@@ -28,7 +28,7 @@ export function useSakinah() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiGet<{ data: Surah[] }>('/sakinah/surahs');
+      const response = await apiGet<{ data: Surah[] }>('/tafakkur/surahs');
       setSurahs(response.data || []);
       return response.data;
     } catch (err: any) {
@@ -44,7 +44,7 @@ export function useSakinah() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiGet<{ data: Reciter[] }>('/sakinah/reciters');
+      const response = await apiGet<{ data: Reciter[] }>('/tafakkur/reciters');
       setReciters(response.data || []);
       return response.data;
     } catch (err: any) {
@@ -61,7 +61,7 @@ export function useSakinah() {
     setError(null);
     try {
       const response = await apiGet<{ data: Reciter[] }>(
-        '/sakinah/popular-reciters',
+        '/tafakkur/popular-reciters',
       );
       setReciters(response.data || []);
       return response.data;
@@ -80,7 +80,7 @@ export function useSakinah() {
       setError(null);
       try {
         const response = await apiGet<{ url: string }>(
-          `/sakinah/audio-url?surah=${surahNumber}&reciter=${reciterIdentifier}`,
+          `/tafakkur/audio-url?surah=${surahNumber}&reciter=${reciterIdentifier}`,
         );
         setAudioUrl(response.url);
         return response.url;

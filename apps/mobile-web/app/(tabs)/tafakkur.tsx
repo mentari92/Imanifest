@@ -123,7 +123,7 @@ export default function TafakkurHubScreen() {
     setLoadingReciters(true);
     try {
       const response = await apiGet<{ data: Array<{ id: number; name: string; subtitle?: string; style?: string }> }>(
-        "/sakinah/reciters",
+        "/tafakkur/reciters",
       );
 
       const normalizeReciterName = (value: string) =>
@@ -245,7 +245,7 @@ export default function TafakkurHubScreen() {
     }
 
     const response = await apiGet<{ url: string; reciterIdUsed: number; fallbackUsed: boolean }>(
-      "/sakinah/verse-audio-url",
+      "/tafakkur/verse-audio-url",
       { reciterId: String(reciterId), ayahKey },
     );
 

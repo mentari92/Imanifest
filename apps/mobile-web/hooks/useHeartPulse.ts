@@ -94,8 +94,8 @@ export function useHeartPulse() {
     setError(null);
     try {
       const [reflectResponse, verseResponse] = await Promise.all([
-        apiPost<any>('/heart-pulse/reflect', { transcriptText: text }),
-        apiPost<any>('/iman-sync/quick-search', { text }),
+        apiPost<any>('/qalb/reflect', { transcriptText: text }),
+        apiPost<any>('/imanifest/quick-search', { text }),
       ]);
 
       const aiInsight = reflectResponse?.aiInsight || {};
@@ -138,7 +138,7 @@ export function useHeartPulse() {
   const fetchStreak = useCallback(async () => {
     try {
       const response = await apiGet<{ reflections: any[]; streakCount: number }>(
-        '/heart-pulse/history',
+        '/qalb/history',
       );
       const mapped = {
         currentStreak: response?.streakCount || 0,
@@ -165,7 +165,7 @@ export function useHeartPulse() {
             createdAt: string;
           }>;
           streakCount: number;
-        }>('/heart-pulse/history');
+        }>('/qalb/history');
 
         const mappedHistory: HistoryItem[] = Array.isArray(response?.reflections)
           ? response.reflections.map((item) => ({

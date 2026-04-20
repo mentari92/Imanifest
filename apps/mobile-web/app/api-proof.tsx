@@ -27,8 +27,8 @@ const glass = {
 const endpointMap = [
   { key: "health", title: "Backend Health", endpoint: "/health", category: "Platform" as const },
   { key: "dashboard", title: "Dashboard Overview", endpoint: "/dashboard/overview", category: "User API" as const },
-  { key: "sakinahReciters", title: "Reciter List", endpoint: "/sakinah/reciters", category: "Audio API" as const },
-  { key: "foundationHealth", title: "Foundation API Health", endpoint: "/sakinah/foundation-health", category: "Content API" as const },
+  { key: "sakinahReciters", title: "Reciter List", endpoint: "/tafakkur/reciters", category: "Audio API" as const },
+  { key: "foundationHealth", title: "Foundation API Health", endpoint: "/tafakkur/foundation-health", category: "Content API" as const },
 ];
 
 function statusColors(status: ProbeStatus) {
@@ -63,8 +63,8 @@ export default function ApiProofScreen() {
       const checks = await Promise.allSettled([
         apiGet("/health"),
         apiGet("/dashboard/overview"),
-        apiGet("/sakinah/reciters"),
-        apiGet("/sakinah/foundation-health"),
+        apiGet("/tafakkur/reciters"),
+        apiGet("/tafakkur/foundation-health"),
       ]);
 
       if (!active) return;
