@@ -44,7 +44,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: "${DATABASE_URL:-postgresql://db:5432/${POSTGRES_DB:-imanifest}?schema=public&user=${POSTGRES_USER:-imanifest}&password=${POSTGRES_PASSWORD}}"
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
     ports:
       - "3001:3001"
