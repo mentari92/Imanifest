@@ -109,6 +109,16 @@ jobs:
             echo "=== Ensuring db and redis are running ==="
             docker compose up -d db redis
 
+            # ── Keep DB role password in sync with env config ───────
+            # This fixes auth drift when a persistent Postgres volume keeps an
+            # older password while .env was updated later.
+            echo "=== Synchronizing database role password ==="
+            docker compose exec -T db psql -U "$POSTGRES_USER_VALUE" -d postgres \
+              -v ON_ERROR_STOP=1 \
+              -v role_name="$POSTGRES_USER_VALUE" \
+              -v role_password="$POSTGRES_PASSWORD_VALUE" \
+              -c "ALTER ROLE :\"role_name\" WITH LOGIN PASSWORD :'role_password';" || true
+
             # ── Rebuild API + Web containers ───────────────────────
             echo "=== Rebuilding all containers (no cache) ==="
             docker compose build --no-cache api web
