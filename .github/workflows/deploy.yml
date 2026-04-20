@@ -77,8 +77,8 @@ jobs:
             upsert_env "QURAN_FOUNDATION_OAUTH_BASE_URL" "https://oauth2.quran.foundation"
             upsert_env "QURAN_FOUNDATION_AUTH_TOKEN" "$AUTH_TOKEN"
 
-            # Build a safe DATABASE_URL (query-params form) so special chars in
-            # password (e.g. @) don't break host parsing.
+            # Build a safe DATABASE_URL with URL-encoded credentials so special
+            # chars in username/password (e.g. @, :, /) don't break parsing.
             POSTGRES_USER_VALUE=$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -1 | cut -d= -f2-)
             POSTGRES_DB_VALUE=$(grep -E '^POSTGRES_DB=' "$ENV_FILE" | tail -1 | cut -d= -f2-)
             POSTGRES_PASSWORD_VALUE=$(grep -E '^POSTGRES_PASSWORD=' "$ENV_FILE" | tail -1 | cut -d= -f2-)
@@ -91,7 +91,9 @@ jobs:
               exit 1
             fi
 
-            DATABASE_URL_VALUE="postgresql://db:5432/${POSTGRES_DB_VALUE}?schema=public&user=${POSTGRES_USER_VALUE}&password=${POSTGRES_PASSWORD_VALUE}"
+            ENCODED_USER=$(node -p "encodeURIComponent(process.argv[1])" "$POSTGRES_USER_VALUE")
+            ENCODED_PASSWORD=$(node -p "encodeURIComponent(process.argv[1])" "$POSTGRES_PASSWORD_VALUE")
+            DATABASE_URL_VALUE="postgresql://${ENCODED_USER}:${ENCODED_PASSWORD}@db:5432/${POSTGRES_DB_VALUE}?schema=public"
             upsert_env "DATABASE_URL" "$DATABASE_URL_VALUE"
 
             echo "=== .env updated ==="

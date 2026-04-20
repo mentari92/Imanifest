@@ -58,13 +58,13 @@ export class AppController {
       status: "running",
       endpoints: {
         auth: { register: "POST /auth/register", login: "POST /auth/login" },
-        imanifest: "POST /iman-sync/analyze",
+        imanifest: "POST /imanifest/analyze (alias: /iman-sync/analyze)",
         duaTodo: "POST /dua-to-do/generate",
-        qalb: "POST /heart-pulse/reflect",
+        qalb: "POST /qalb/reflect (alias: /heart-pulse/reflect)",
         tafakkur: {
-          reciters: "GET /sakinah/reciters",
-          surahs: "GET /sakinah/surahs",
-          audio: "GET /sakinah/audio",
+          reciters: "GET /tafakkur/reciters (alias: /sakinah/reciters)",
+          surahs: "GET /tafakkur/surahs (alias: /sakinah/surahs)",
+          audio: "GET /tafakkur/audio-url (alias: /sakinah/audio-url)",
         },
         dashboard: "GET /dashboard/overview (requires auth)",
       },
