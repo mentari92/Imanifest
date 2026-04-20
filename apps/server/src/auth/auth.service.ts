@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, HttpException, Logger } from "@nestjs/common";
+import { Injectable, UnauthorizedException, ConflictException, HttpException, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "@imanifest/database";
 import { RedisService } from "../common/redis.service";
@@ -7,6 +7,16 @@ import { createHash } from "crypto";
 
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes in seconds
 const RATE_LIMIT_MAX = 5; // max 5 attempts per window per IP
+const DEMO_AUTH_FALLBACK_ENABLED = process.env.DEMO_AUTH_FALLBACK_ENABLED !== "false";
+
+type DemoAuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+};
+
+const demoUsers = new Map<string, DemoAuthUser>();
 
 @Injectable()
 export class AuthService {
@@ -21,40 +31,61 @@ export class AuthService {
   async register(email: string, password: string, name?: string, ip?: string) {
     if (ip) await this.checkRateLimit(ip);
 
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      throw new ConflictException("Email already registered");
+    // DB down? use an in-memory fallback so auth still works for demo traffic.
+    if (!this.prisma.isConnected) {
+      return this.registerDemoUser(email, password, name);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        name: name || email.split("@")[0],
-        password: hashedPassword,
-      },
-    });
+    try {
+      const existing = await this.prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        throw new ConflictException("Email already registered");
+      }
 
-    const token = this.generateToken(user.id, user.email);
-    return { access_token: token, user: { id: user.id, email: user.email, name: user.name } };
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          name: name || email.split("@")[0],
+          password: hashedPassword,
+        },
+      });
+
+      const token = this.generateToken(user.id, user.email);
+      return { access_token: token, user: { id: user.id, email: user.email, name: user.name } };
+    } catch (err) {
+      if (err instanceof ConflictException) throw err;
+      this.logger.warn(`Register failed on primary DB path: ${err instanceof Error ? err.message : err}`);
+      return this.registerDemoUser(email, password, name);
+    }
   }
 
   async login(email: string, password: string, ip?: string) {
     this.logger.log(`Login attempt for: ${email}`);
     if (ip) await this.checkRateLimit(ip);
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.password) {
-      throw new UnauthorizedException("Invalid credentials");
+    if (!this.prisma.isConnected) {
+      return this.loginDemoUser(email, password);
     }
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user || !user.password) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
 
-    const token = this.generateToken(user.id, user.email);
-    return { access_token: token, user: { id: user.id, email: user.email, name: user.name } };
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+
+      const token = this.generateToken(user.id, user.email);
+      return { access_token: token, user: { id: user.id, email: user.email, name: user.name } };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      this.logger.warn(`Login failed on primary DB path: ${err instanceof Error ? err.message : err}`);
+      return this.loginDemoUser(email, password);
+    }
   }
 
   async validateUser(userId: string) {
@@ -104,6 +135,61 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
+  }
+
+  private demoUserId(email: string): string {
+    return `demo-${createHash("sha256").update(email.toLowerCase()).digest("hex").slice(0, 16)}`;
+  }
+
+  private async registerDemoUser(email: string, password: string, name?: string) {
+    if (!DEMO_AUTH_FALLBACK_ENABLED) {
+      throw new ServiceUnavailableException("Auth service is temporarily unavailable.");
+    }
+
+    const key = email.toLowerCase();
+    if (demoUsers.has(key)) {
+      throw new ConflictException("Email already registered");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const demoUser: DemoAuthUser = {
+      id: this.demoUserId(email),
+      email,
+      name: name || email.split("@")[0],
+      passwordHash,
+    };
+    demoUsers.set(key, demoUser);
+
+    const token = this.generateToken(demoUser.id, demoUser.email);
+    return {
+      access_token: token,
+      user: { id: demoUser.id, email: demoUser.email, name: demoUser.name },
+      mode: "demo-fallback",
+    };
+  }
+
+  private async loginDemoUser(email: string, password: string) {
+    if (!DEMO_AUTH_FALLBACK_ENABLED) {
+      throw new ServiceUnavailableException("Auth service is temporarily unavailable.");
+    }
+
+    const key = email.toLowerCase();
+    const demoUser = demoUsers.get(key);
+    if (!demoUser) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    const valid = await bcrypt.compare(password, demoUser.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    const token = this.generateToken(demoUser.id, demoUser.email);
+    return {
+      access_token: token,
+      user: { id: demoUser.id, email: demoUser.email, name: demoUser.name },
+      mode: "demo-fallback",
+    };
   }
 
   /**
