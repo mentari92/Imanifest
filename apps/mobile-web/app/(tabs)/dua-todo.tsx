@@ -181,6 +181,12 @@ export default function DuaTodoScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionLabel}>Your Dua / Intention</Text>
               </View>
+              <View style={[glass, styles.emptyGuideCard]}>
+                <Text style={styles.emptyGuideTitle}>Quick start flow</Text>
+                <Text style={styles.emptyGuideText}>
+                  Paste one intention from Imanifest, generate your tasks, and complete at least one item to make your demo progress visible.
+                </Text>
+              </View>
               <View style={[glass, styles.inputCard]}>
                 <TextInput
                   style={styles.intentionInput}
@@ -206,7 +212,18 @@ export default function DuaTodoScreen() {
           )}
 
           {/* ── Feedback ─────────────────────────────────────────── */}
-          {error && <ErrorMessage message={error} />}
+          {error && (
+            <ErrorMessage
+              message={error}
+              onRetry={() => {
+                if (totalCount === 0 && intention.trim()) {
+                  void handleGenerate();
+                  return;
+                }
+                void fetchTasks(typeof manifestationId === 'string' ? manifestationId : undefined).catch(() => {});
+              }}
+            />
+          )}
           {loading && <LoadingSpinner message="AI is generating your tasks..." />}
 
           {/* ── Task Checklist ──────────────────────────────────────── */}
@@ -431,6 +448,28 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     borderRadius: 28,
+  },
+  emptyGuideCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    marginBottom: 12,
+    backgroundColor: 'rgba(169,247,183,0.12)',
+  },
+  emptyGuideTitle: {
+    fontSize: 11,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase' as const,
+    color: C.tertiary,
+    fontFamily: 'Plus Jakarta Sans',
+    fontWeight: '700' as const,
+    marginBottom: 6,
+  },
+  emptyGuideText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: C.onSurfaceVariant,
+    fontFamily: 'Noto Serif',
   },
   intentionInput: {
     fontSize: 17,

@@ -272,7 +272,18 @@ export default function QalbScreen() {
         </View>
 
         {/* ── Feedback ───────────────────────────────────────────── */}
-        {error && <ErrorMessage message={error} />}
+        {error && (
+          <ErrorMessage
+            message={error}
+            onRetry={() => {
+              if (journalText.trim()) {
+                void handleSubmit();
+                return;
+              }
+              void fetchStreak();
+            }}
+          />
+        )}
         {loading && <LoadingSpinner message="Analyzing your feelings with AI..." />}
 
         {/* ── Result preview (if not redirected) ─────────────────── */}

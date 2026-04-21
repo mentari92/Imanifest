@@ -323,7 +323,18 @@ export default function ImanifestScreen() {
         </TouchableOpacity>
 
         {/* ── Feedback ───────────────────────────────────────────── */}
-        {error && <ErrorMessage message={error} />}
+        {error && (
+          <ErrorMessage
+            message={error}
+            onRetry={() => {
+              if (intentionText.trim()) {
+                void handleSubmit();
+                return;
+              }
+              void fetchHistory().catch(() => {});
+            }}
+          />
+        )}
         {loading && <LoadingSpinner message="Analyzing your intention with AI..." />}
 
         {/* ── AI Result ──────────────────────────────────────────── */}
