@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useAuth } from '../../lib/auth';
 import { MeditationIcon } from '../../components/shared/MeditationIcon';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import {
   Heart, Sparkles, ListChecks,
   Bell, User, Sun, BookOpen, Star,
@@ -142,7 +144,7 @@ export default function DashboardScreen() {
   const demoAuthMode =
     typeof process !== 'undefined' &&
     process.env.EXPO_PUBLIC_DEMO_AUTH_MODE === 'true';
-  const { data, fetchDashboard, isOfflineMode } = useDashboard();
+  const { data, fetchDashboard, isOfflineMode, loading, error } = useDashboard();
   const [refreshing, setRefreshing] = useState(false);
   const [prayerTimings, setPrayerTimings] = useState<Record<PrayerKey, string> | null>(null);
   const [clockTick, setClockTick] = useState(Date.now());
@@ -257,6 +259,8 @@ export default function DashboardScreen() {
   ];
   const completedFunnelSteps = funnelSteps.filter((step) => step.done).length;
   const funnelPct = Math.round((completedFunnelSteps / funnelSteps.length) * 100);
+  const nextFunnelStep = funnelSteps.find((step) => !step.done) || funnelSteps[0];
+  const showFirstRunGuide = completedFunnelSteps < funnelSteps.length;
   const toActivityRoute = (type: string) => {
     const normalized = type.toLowerCase();
     if (normalized.includes('intent') || normalized.includes('imanifest')) return '/(tabs)/imanifest';
@@ -344,6 +348,37 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Critical fetch fallback */}
+        {!isOfflineMode && error ? (
+          <View style={{ marginBottom: 20 }}>
+            <ErrorMessage message={error} onRetry={() => void fetchDashboard().catch(() => undefined)} />
+          </View>
+        ) : null}
+
+        {loading && !data ? (
+          <View style={[glass, { padding: 18, marginBottom: 20 }]}> 
+            <LoadingSpinner message="Preparing your dashboard..." />
+          </View>
+        ) : null}
+
+        {/* Guided onboarding */}
+        {showFirstRunGuide ? (
+          <View style={[glass, s.firstRunCard]}>
+            <Text style={s.firstRunKicker}>90-Second Setup</Text>
+            <Text style={s.firstRunTitle}>Finish this quick flow before the demo</Text>
+            <Text style={s.firstRunSub}>
+              Start with Qalb, set your Imanifest intention, then convert it to Dua-to-Do and close with Tafakkur.
+            </Text>
+            <TouchableOpacity
+              style={s.firstRunCta}
+              onPress={() => router.push(nextFunnelStep.route as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={s.firstRunCtaText}>Continue: {nextFunnelStep.label}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Prayer Times */}
         <View style={s.prayerCard}>
@@ -880,5 +915,45 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: C.primaryDim,
+  },
+  firstRunCard: {
+    padding: 18,
+    marginBottom: 18,
+  },
+  firstRunKicker: {
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: C.tertiary,
+    fontFamily: 'Plus Jakarta Sans',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  firstRunTitle: {
+    fontSize: 20,
+    fontFamily: 'Newsreader',
+    fontWeight: '600',
+    color: C.onSurface,
+    marginBottom: 6,
+  },
+  firstRunSub: {
+    fontSize: 12,
+    fontFamily: 'Noto Serif',
+    color: C.onSurfaceVariant,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  firstRunCta: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(169,247,183,0.4)',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  firstRunCtaText: {
+    color: C.tertiary,
+    fontFamily: 'Plus Jakarta Sans',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

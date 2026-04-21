@@ -78,9 +78,11 @@ function stripHtml(text: string) {
 export default function TafakkurHubScreen() {
   const [reciters, setReciters]          = useState<Reciter[]>([]);
   const [loadingReciters, setLoadingReciters] = useState(true);
+  const [recitersError, setRecitersError] = useState<string | null>(null);
   const [surahs, setSurahs]             = useState<Surah[]>([]);
   const [surahSearch, setSurahSearch]   = useState("");
   const [loadingSurahs, setLoadingSurahs] = useState(true);
+  const [surahsError, setSurahsError] = useState<string | null>(null);
   const [activeReciter, setActiveReciter] = useState(0);
   const [activeSurah, setActiveSurah]   = useState<Surah | null>(null);
   const [isPlaying, setIsPlaying]       = useState(false);
@@ -121,6 +123,7 @@ export default function TafakkurHubScreen() {
 
   const loadReciters = useCallback(async () => {
     setLoadingReciters(true);
+    setRecitersError(null);
     try {
       const response = await apiGet<{ data: Array<{ id: number; name: string; subtitle?: string; style?: string }> }>(
         "/tafakkur/reciters",
@@ -156,42 +159,54 @@ export default function TafakkurHubScreen() {
       setShowAllReciters(false);
     } catch {
       setReciters([]);
-      setAudioError("Unable to load reciters right now.");
+      setRecitersError("Unable to load reciters right now.");
     } finally {
       setLoadingReciters(false);
     }
   }, []);
 
-  // Load reciters and 114 surahs
-  useEffect(() => {
-    loadReciters();
+  const loadSurahs = useCallback(async () => {
+    setLoadingSurahs(true);
+    setSurahsError(null);
+    try {
+      const res = await fetch("https://api.quran.com/api/v4/chapters?language=en");
+      const data = await res.json();
+      const mappedSurahs = (data.chapters || []).map((c: any) => ({
+        number: Number(c.id),
+        name: String(c.name_arabic || ""),
+        englishName: String(c.name_simple || `Surah ${c.id}`),
+        versesCount: Number(c.verses_count || 0),
+      }));
 
-    const load = async () => {
-      setLoadingSurahs(true);
-      try {
-        const res = await fetch("https://api.quran.com/api/v4/chapters?language=en");
-        const data = await res.json();
-        setSurahs((data.chapters || []).map((c: any) => ({
-          number: Number(c.id),
-          name: String(c.name_arabic || ""),
-          englishName: String(c.name_simple || `Surah ${c.id}`),
-          versesCount: Number(c.verses_count || 0),
-        })));
-      } catch {
+      if (mappedSurahs.length === 0) {
+        setSurahsError("Surah list is currently unavailable.");
         setSurahs(Array.from({ length: 114 }, (_, i) => ({
           number: i + 1, name: "", englishName: `Surah ${i + 1}`, versesCount: 0,
         })));
-      } finally {
-        setLoadingSurahs(false);
+        return;
       }
-    };
-    load();
+
+      setSurahs(mappedSurahs);
+    } catch {
+      setSurahsError("Unable to load surahs right now.");
+      setSurahs(Array.from({ length: 114 }, (_, i) => ({
+        number: i + 1, name: "", englishName: `Surah ${i + 1}`, versesCount: 0,
+      })));
+    } finally {
+      setLoadingSurahs(false);
+    }
+  }, []);
+
+  // Load reciters and 114 surahs
+  useEffect(() => {
+    void loadReciters();
+    void loadSurahs();
     return () => {
       audioRef.current?.pause();
       if (intervalRef.current) clearInterval(intervalRef.current);
       ambientStopRef.current?.();
     };
-  }, [loadReciters]);
+  }, [loadReciters, loadSurahs]);
 
   // Fetch verses when surah changes (Quran Foundation API supports CORS)
   useEffect(() => {
@@ -541,8 +556,17 @@ export default function TafakkurHubScreen() {
             ) : reciters.length === 0 ? (
               <View style={[glass(20), { padding: 20 }]}>
                 <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#991b1b" }}>
-                  Reciters are unavailable. Please try again shortly.
+                  {recitersError || "Reciters are unavailable. Please try again shortly."}
                 </Text>
+                <TouchableOpacity
+                  onPress={() => void loadReciters()}
+                  activeOpacity={0.85}
+                  style={[glass(999), { marginTop: 12, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 8 }]}
+                >
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: "#0e6030" }}>
+                    Retry reciters
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -606,6 +630,22 @@ export default function TafakkurHubScreen() {
               </View>
             ) : (
               <View style={[glass(20)]}>
+                {surahsError ? (
+                  <View style={{ padding: 16 }}>
+                    <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#991b1b" }}>
+                      {surahsError}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => void loadSurahs()}
+                      activeOpacity={0.85}
+                      style={[glass(999), { marginTop: 12, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 8 }]}
+                    >
+                      <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: "#0e6030" }}>
+                        Retry surah list
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
                 <ScrollView nestedScrollEnabled showsVerticalScrollIndicator
                   style={{ maxHeight: 420, borderRadius: 20, ...(Platform.OS === "web" ? ({ overflowY: "auto" } as any) : {}) }}
                 >
