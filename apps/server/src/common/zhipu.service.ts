@@ -97,8 +97,14 @@ export class ZhipuService {
       .trim();
   }
 
-  private detectPreferredLanguage(text: string): "english" | "indonesian" | "arabic" {
+  private detectPreferredLanguage(
+    text: string,
+  ): "english" | "indonesian" | "arabic" | "same-language" {
     const source = String(text || "").trim();
+
+    if (!source) {
+      return "english";
+    }
 
     if (/[\u0600-\u06FF]/.test(source)) {
       return "arabic";
@@ -108,7 +114,27 @@ export class ZhipuService {
       return "indonesian";
     }
 
-    return "english";
+    const englishHits = (source.match(/\b(the|and|you|your|with|for|that|this|will|can|may|is|are|to|of|in)\b/gi) || []).length;
+    if (englishHits >= 2) {
+      return "english";
+    }
+
+    return "same-language";
+  }
+
+  private getResponseLanguageInstruction(
+    targetLanguage: "english" | "indonesian" | "arabic" | "same-language",
+  ): string {
+    switch (targetLanguage) {
+      case "english":
+        return "Respond in natural English.";
+      case "indonesian":
+        return "Respond in natural Indonesian (Bahasa Indonesia).";
+      case "arabic":
+        return "Respond in Arabic.";
+      default:
+        return "Respond in the exact same language as the user's input text. Do not translate unless the user asks for translation.";
+    }
   }
 
   private extractThemesHeuristic(text: string): string[] {
@@ -349,12 +375,11 @@ Do not include any explanation or extra text.`;
   ): Promise<string> {
     const versesContext = verses.map((v) => `${v.verseKey}: ${v.translation}`).join("\n");
     const targetLanguage = this.detectPreferredLanguage(intentText);
+    const languageInstruction = this.getResponseLanguageInstruction(targetLanguage);
 
     const systemPrompt = `You are a warm, knowledgeable Islamic life coach.
 Given the user's intention and related Quranic verses, write a concise and practical guidance.
-Respond in ${targetLanguage}.
-If the user writes in English, use plain and natural English.
-Do not switch to Arabic unless the user explicitly writes in Arabic.
+${languageInstruction}
 Return 2 short paragraphs:
 1) spiritual reassurance with a cited verse key
 2) concrete next steps for today.`;
@@ -425,12 +450,11 @@ Return 2 short paragraphs:
   ): Promise<{ title: string; guidance: string }[]> {
     const versesContext = verses.map((v) => `${v.verseKey}: ${v.translation}`).join("\n");
     const targetLanguage = this.detectPreferredLanguage(intentText);
+    const languageInstruction = this.getResponseLanguageInstruction(targetLanguage);
 
     const systemPrompt = `You are an Islamic life coach creating practical action plans.
 Generate exactly 5 actionable steps (Ikhtiar) based on the user's intention and relevant Quran verses.
-Respond in ${targetLanguage}.
-If the user writes in English, use plain and natural English.
-Do not switch to Arabic unless the user explicitly writes in Arabic.
+${languageInstruction}
 Return ONLY a valid JSON array of exactly 5 objects.
 Each object must have exactly two keys:
 - "title": short action title (max 8 words)
@@ -470,13 +494,11 @@ Do not include any explanation outside the JSON array.`;
     logicalPath: string[];
   }> {
     const targetLanguage = this.detectPreferredLanguage(transcriptText);
+    const languageInstruction = this.getResponseLanguageInstruction(targetLanguage);
 
     const systemPrompt = `You are a warm Islamic counselor combining Quranic wisdom with modern science.
 Return ONLY a JSON object with keys spiritual, tafsir, scientific, hadith, logicalPath.
-Respond in ${targetLanguage}.
-If the user writes in Indonesian, respond in natural Indonesian.
-If the user writes in English, respond in natural English.
-If the user writes in Arabic, respond in Arabic.
+${languageInstruction}
 Rules for hadith:
 - hadith must be an array of exactly 2 items
 - each item must contain: reference, text
@@ -486,7 +508,7 @@ Rules for logicalPath:
 - each step must be practical, realistic, and directly tied to the user's problem
 - each step should be one sentence, max 20 words
 Writing style:
-- use clear, natural, human-sounding English
+- use clear, natural, human-sounding language
 - avoid buzzwords, cliches, and over-formal wording
 - keep wording simple and easy to understand for non-native speakers`;
 
