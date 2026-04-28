@@ -535,7 +535,7 @@ export class QuranApiService {
 
     try {
       const response = await axios.get<{ verses: any[] }>(
-        `${this.baseUrl}/verses/by_chapter/${randomSurah}`,
+        `${this.foundationBaseUrl}/verses/by_chapter/${randomSurah}`,
         {
           params: {
             language: "en",
@@ -560,7 +560,7 @@ export class QuranApiService {
       let surahName = `Surah ${randomSurah}`;
       try {
         const chapterRes = await axios.get<{ chapter: any }>(
-          `${this.baseUrl}/chapters/${randomSurah}`,
+          `${this.foundationBaseUrl}/chapters/${randomSurah}`,
           { params: { language: "en" }, headers: this.getHeaders(), timeout: 5000 },
         );
         surahName = chapterRes.data?.chapter?.name_simple || surahName;

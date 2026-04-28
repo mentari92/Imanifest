@@ -167,18 +167,24 @@ export default function AboutUsScreen() {
             <View style={{ flexDirection: isCompact ? "column" : "row", gap: 18, alignItems: isCompact ? "stretch" : "flex-start" }}>
               <View
                 style={{
-                  width: isCompact ? "100%" : 140,
-                  height: isCompact ? 220 : 164,
-                  borderRadius: 18,
+                  width: isCompact ? 180 : 160,
+                  height: isCompact ? 180 : 160,
+                  borderRadius: 9999,
                   overflow: "hidden",
                   backgroundColor: "#dbeafe",
                   flexShrink: 0,
+                  alignSelf: isCompact ? "center" : "flex-start",
+                  borderWidth: 3,
+                  borderColor: "rgba(139, 92, 246, 0.3)",
+                  ...(Platform.OS === "web"
+                    ? ({ boxShadow: "0 4px 24px rgba(139,92,246,0.15)" } as any)
+                    : {}),
                 }}
               >
                 <Image
                   source={founderPhoto}
                   style={{ width: "100%", height: "100%" }}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               </View>
               <View style={{ flex: 1, gap: 10 }}>
