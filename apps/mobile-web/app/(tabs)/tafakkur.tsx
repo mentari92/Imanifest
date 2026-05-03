@@ -269,11 +269,11 @@ export default function TafakkurHubScreen() {
   }, [activeSurah, fetchVersesByChapter]);
 
   useEffect(() => {
-    if (pendingPlay && surahVerses.length > 0 && activeSurah && versesSurahNumber === activeSurah.number) {
+    if (pendingPlay && surahVerses.length > 0 && activeSurah && versesSurahNumber === activeSurah.number && reciters.length > 0) {
       setPendingPlay(false);
       loadAndPlayVersesRef.current(activeReciter, activeSurah, 0);
     }
-  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah]);
+  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah, reciters]);
 
   const stopAudio = useCallback(() => {
     requestIdRef.current++;
@@ -522,7 +522,7 @@ export default function TafakkurHubScreen() {
     String(s.number).includes(surahSearch)
   ), [surahs, surahSearch, normalize]);
   const dhikr = DHIKR_LIST[dhikrIndex];
-  const showPlayer = isPlaying || isLoadingAudio || progress > 0 || !!audioError;
+  const showPlayer = isPlaying || isLoadingAudio || progress > 0 || !!audioError || pendingPlay;
   const currentVerse = surahVerses[currentVerseIdx];
   const visibleProgress = scrubProgress ?? progress;
   const reciterItems = reciters.map((reciter, index) => ({ reciter, index }));
