@@ -271,9 +271,9 @@ export default function TafakkurHubScreen() {
   useEffect(() => {
     if (pendingPlay && surahVerses.length > 0 && activeSurah && versesSurahNumber === activeSurah.number && reciters.length > 0) {
       setPendingPlay(false);
-      loadAndPlayVersesRef.current(activeReciter, activeSurah, 0);
+      loadAndPlayVerses(activeReciter, activeSurah, 0);
     }
-  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah, reciters]);
+  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah, reciters, loadAndPlayVerses]);
 
   const stopAudio = useCallback(() => {
     requestIdRef.current++;
@@ -730,15 +730,15 @@ export default function TafakkurHubScreen() {
                     {activeSurah ? `${activeSurah.englishName} · ${reciters[activeReciter]?.name || "Unknown"}` : "Select a surah to begin"}
                   </Text>
                   <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, color: audioError ? "#991b1b" : !activeSurah ? "#5b5f65" : "#5b5f65", marginTop: 2 }}>
-                    {!activeSurah ? "👉 Choose a surah from the list above" : isLoadingAudio ? "Loading audio..." : audioError ? audioError : `${formatTime(currentTime)} / ${formatTime(duration)}`}
+                    {!activeSurah ? "👉 Choose a surah from the list above" : isLoadingAudio ? "Loading audio..." : pendingPlay ? "Loading verses..." : audioError ? audioError : `${formatTime(currentTime)} / ${formatTime(duration)}`}
                   </Text>
                 </View>
               </View>
               {/* Player controls — wrap on small screens */}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <TouchableOpacity onPress={togglePlay} disabled={!activeSurah || isLoadingAudio}
+                <TouchableOpacity onPress={togglePlay} disabled={!activeSurah || isLoadingAudio || pendingPlay}
                   style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: !activeSurah ? "#c5c5c5" : "#166534", alignItems: "center", justifyContent: "center" }}>
-                  {isLoadingAudio ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ fontSize: 18, color: "#fff" }}>{isPlaying ? "⏸" : "▶"}</Text>}
+                  {isLoadingAudio || pendingPlay ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ fontSize: 18, color: "#fff" }}>{isPlaying ? "⏸" : "▶"}</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={stopAudio}
                   style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(229,223,248,0.6)", alignItems: "center", justifyContent: "center" }}>
