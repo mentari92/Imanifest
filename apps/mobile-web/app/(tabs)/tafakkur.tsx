@@ -108,6 +108,7 @@ export default function TafakkurHubScreen() {
   const [versesSurahNumber, setVersesSurahNumber] = useState<number | null>(null);
   const [bookmarkedVerses, setBookmarkedVerses] = useState<Set<string>>(new Set());
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [readMode, setReadMode] = useState(false);
 
   const handleBookmark = useCallback(async (verseKey: string) => {
     if (bookmarkLoading) return;
@@ -587,7 +588,7 @@ export default function TafakkurHubScreen() {
               </View>
               <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
                 <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 16, fontWeight: "800", color: "#166534" }}>3</Text>
-                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#2f3338", flex: 1, lineHeight: 18 }}>Press play and configure auto-advance settings</Text>
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#2f3338", flex: 1, lineHeight: 18 }}>In Listen mode, press play to hear each verse. In Read mode, browse all verses at your own pace — audio is optional</Text>
               </View>
             </View>
           </View>
@@ -703,7 +704,7 @@ export default function TafakkurHubScreen() {
                   {filtered.map((s) => (
                     <TouchableOpacity
                       key={s.number}
-                      onPress={() => { setActiveSurah(s); stopAudio(); setCurrentVerseIdx(0); setSurahVerses([]); setPendingPlay(true); }}
+                      onPress={() => { setActiveSurah(s); stopAudio(); setCurrentVerseIdx(0); setSurahVerses([]); if (!readMode) setPendingPlay(true); }}
                       style={{
                         flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14,
                         borderBottomWidth: 1, borderBottomColor: "rgba(174,178,185,0.15)",
@@ -817,66 +818,147 @@ export default function TafakkurHubScreen() {
             </View>
           )}
 
-          {/* Read & Reflect — synced verse display */}
+          {/* Read & Reflect */}
           <View style={[glass(24), { padding: isCompact ? 18 : 28, gap: 16, backgroundColor: "rgba(169,247,183,0.08)" }]}>
-            <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#0e6030", fontWeight: "700", textAlign: "center" }}>
-              Read &amp; Reflect{activeSurah ? ` · ${activeSurah.englishName}` : ""}
-            </Text>
-            {currentVerse ? (
-              <>
-                <Text style={{ fontFamily: "Amiri-Regular", fontSize: 28, lineHeight: 54, color: "#2f3338", textAlign: "center", ...(Platform.OS === "web" ? ({ direction: "rtl" } as any) : {}) }}>
-                  {currentVerse.arabic}
-                </Text>
-                <View style={{ height: 1, backgroundColor: "rgba(174,178,185,0.2)" }} />
-                <Text style={{ fontFamily: "Noto Serif", fontSize: 15, fontStyle: "italic", color: "#2f3338", textAlign: "center", lineHeight: 26 }}>
-                  "{currentVerse.translation}"
-                </Text>
-                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#777b81", textAlign: "center" }}>
-                  — {currentVerse.verseKey}
-                  {surahVerses.length > 0 ? `  ·  verse ${currentVerseIdx + 1} of ${surahVerses.length}` : ""}
-                </Text>
+            {/* Header + Listen/Read toggle */}
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#0e6030", fontWeight: "700" }}>
+                Read &amp; Reflect{activeSurah ? ` · ${activeSurah.englishName}` : ""}
+              </Text>
+              <View style={{ flexDirection: "row", backgroundColor: "rgba(229,223,248,0.5)", borderRadius: 20, padding: 3 }}>
                 <TouchableOpacity
-                  onPress={() => void handleBookmark(currentVerse.verseKey)}
-                  disabled={bookmarkLoading}
-                  style={{
-                    alignSelf: "center",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: bookmarkedVerses.has(currentVerse.verseKey)
-                      ? "rgba(22,101,52,0.15)"
-                      : "rgba(169,247,183,0.25)",
-                    borderWidth: 1,
-                    borderColor: bookmarkedVerses.has(currentVerse.verseKey)
-                      ? "rgba(22,101,52,0.4)"
-                      : "rgba(169,247,183,0.6)",
-                  }}
-                  activeOpacity={0.75}
+                  onPress={() => setReadMode(false)}
+                  activeOpacity={0.85}
+                  style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: !readMode ? "#166534" : "transparent" }}
                 >
-                  <Text style={{ fontSize: 14 }}>
-                    {bookmarkedVerses.has(currentVerse.verseKey) ? "🔖" : "📖"}
-                  </Text>
-                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: "#0e6030" }}>
-                    {bookmarkedVerses.has(currentVerse.verseKey) ? "Saved to Quran.com" : "Bookmark in Quran.com"}
-                  </Text>
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: !readMode ? "#fff" : "#5b5f65" }}>Listen</Text>
                 </TouchableOpacity>
-              </>
+                <TouchableOpacity
+                  onPress={() => setReadMode(true)}
+                  activeOpacity={0.85}
+                  style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: readMode ? "#166534" : "transparent" }}
+                >
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: readMode ? "#fff" : "#5b5f65" }}>Read</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {readMode ? (
+              surahVerses.length > 0 ? (
+                <View style={{ gap: 0 }}>
+                  {surahVerses.map((verse, idx) => {
+                    const isCurrentPlaying = isPlaying && idx === currentVerseIdx;
+                    return (
+                      <View
+                        key={verse.verseKey}
+                        style={{
+                          gap: 12,
+                          paddingVertical: 20,
+                          paddingHorizontal: 4,
+                          borderBottomWidth: idx < surahVerses.length - 1 ? 1 : 0,
+                          borderBottomColor: "rgba(174,178,185,0.2)",
+                          borderRadius: 12,
+                          backgroundColor: isCurrentPlaying ? "rgba(169,247,183,0.2)" : "transparent",
+                        }}
+                      >
+                        <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#777b81", textAlign: "center" }}>
+                          {verse.verseKey}{isCurrentPlaying ? "  · ▶ playing" : ""}
+                        </Text>
+                        <Text style={{ fontFamily: "Amiri-Regular", fontSize: 26, lineHeight: 50, color: "#2f3338", textAlign: "center", ...(Platform.OS === "web" ? ({ direction: "rtl" } as any) : {}) }}>
+                          {verse.arabic}
+                        </Text>
+                        <View style={{ height: 1, backgroundColor: "rgba(174,178,185,0.15)" }} />
+                        <Text style={{ fontFamily: "Noto Serif", fontSize: 14, fontStyle: "italic", color: "#2f3338", textAlign: "center", lineHeight: 24 }}>
+                          "{verse.translation}"
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => void handleBookmark(verse.verseKey)}
+                          disabled={bookmarkLoading}
+                          style={{
+                            alignSelf: "center",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 999,
+                            backgroundColor: bookmarkedVerses.has(verse.verseKey) ? "rgba(22,101,52,0.15)" : "rgba(169,247,183,0.2)",
+                            borderWidth: 1,
+                            borderColor: bookmarkedVerses.has(verse.verseKey) ? "rgba(22,101,52,0.4)" : "rgba(169,247,183,0.5)",
+                          }}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={{ fontSize: 12 }}>{bookmarkedVerses.has(verse.verseKey) ? "🔖" : "📖"}</Text>
+                          <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, fontWeight: "700", color: "#0e6030" }}>
+                            {bookmarkedVerses.has(verse.verseKey) ? "Saved to Quran.com" : "Bookmark"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : activeSurah ? (
+                <View style={{ alignItems: "center", paddingVertical: 24, gap: 10 }}>
+                  <ActivityIndicator color="#166534" />
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#5b5f65" }}>Loading verses...</Text>
+                </View>
+              ) : (
+                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 12, color: "#5b5f65", textAlign: "center", paddingVertical: 12 }}>
+                  Choose a surah above to start reading.
+                </Text>
+              )
             ) : (
-              <>
-                <Text style={{ fontFamily: "Amiri-Regular", fontSize: 26, lineHeight: 50, color: "#2f3338", textAlign: "center", ...(Platform.OS === "web" ? ({ direction: "rtl" } as any) : {}) }}>
-                  فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ
-                </Text>
-                <View style={{ height: 1, backgroundColor: "rgba(174,178,185,0.2)" }} />
-                <Text style={{ fontFamily: "Noto Serif", fontSize: 15, fontStyle: "italic", color: "#2f3338", textAlign: "center", lineHeight: 26 }}>
-                  "So which of the favors of your Lord would you deny?"
-                </Text>
-                <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#777b81", textAlign: "center" }}>
-                  {activeSurah ? "Loading verses..." : "Choose a surah to begin reading and reflecting."}
-                </Text>
-              </>
+              // Listen mode: single verse synced to audio position
+              currentVerse ? (
+                <>
+                  <Text style={{ fontFamily: "Amiri-Regular", fontSize: 28, lineHeight: 54, color: "#2f3338", textAlign: "center", ...(Platform.OS === "web" ? ({ direction: "rtl" } as any) : {}) }}>
+                    {currentVerse.arabic}
+                  </Text>
+                  <View style={{ height: 1, backgroundColor: "rgba(174,178,185,0.2)" }} />
+                  <Text style={{ fontFamily: "Noto Serif", fontSize: 15, fontStyle: "italic", color: "#2f3338", textAlign: "center", lineHeight: 26 }}>
+                    "{currentVerse.translation}"
+                  </Text>
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#777b81", textAlign: "center" }}>
+                    — {currentVerse.verseKey}
+                    {surahVerses.length > 0 ? `  ·  verse ${currentVerseIdx + 1} of ${surahVerses.length}` : ""}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => void handleBookmark(currentVerse.verseKey)}
+                    disabled={bookmarkLoading}
+                    style={{
+                      alignSelf: "center",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 999,
+                      backgroundColor: bookmarkedVerses.has(currentVerse.verseKey) ? "rgba(22,101,52,0.15)" : "rgba(169,247,183,0.25)",
+                      borderWidth: 1,
+                      borderColor: bookmarkedVerses.has(currentVerse.verseKey) ? "rgba(22,101,52,0.4)" : "rgba(169,247,183,0.6)",
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={{ fontSize: 14 }}>{bookmarkedVerses.has(currentVerse.verseKey) ? "🔖" : "📖"}</Text>
+                    <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 11, fontWeight: "700", color: "#0e6030" }}>
+                      {bookmarkedVerses.has(currentVerse.verseKey) ? "Saved to Quran.com" : "Bookmark in Quran.com"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontFamily: "Amiri-Regular", fontSize: 26, lineHeight: 50, color: "#2f3338", textAlign: "center", ...(Platform.OS === "web" ? ({ direction: "rtl" } as any) : {}) }}>
+                    فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ
+                  </Text>
+                  <View style={{ height: 1, backgroundColor: "rgba(174,178,185,0.2)" }} />
+                  <Text style={{ fontFamily: "Noto Serif", fontSize: 15, fontStyle: "italic", color: "#2f3338", textAlign: "center", lineHeight: 26 }}>
+                    "So which of the favors of your Lord would you deny?"
+                  </Text>
+                  <Text style={{ fontFamily: "Plus Jakarta Sans", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#777b81", textAlign: "center" }}>
+                    {activeSurah ? "Loading verses..." : "Choose a surah to begin reading and reflecting."}
+                  </Text>
+                </>
+              )
             )}
           </View>
 
