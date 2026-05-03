@@ -25,7 +25,13 @@ export default function SettingsScreen() {
     router.push("/auth");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      if (!window.confirm("Are you sure you want to sign out?")) return;
+      await logout();
+      window.location.replace("/auth");
+      return;
+    }
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -33,11 +39,7 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
-          if (Platform.OS === "web" && typeof window !== "undefined") {
-            window.location.href = "/auth";
-          } else {
-            router.replace("/auth");
-          }
+          router.replace("/auth");
         },
       },
     ]);
