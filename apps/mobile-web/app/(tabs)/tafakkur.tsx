@@ -141,8 +141,10 @@ export default function TafakkurHubScreen() {
   const autoPlayModeRef = useRef(autoPlayMode);
   const bookmarkInFlightRef = useRef(false);
   const loadAndPlayVersesRef = useRef<(reciterIdx: number, surah: Surah, startIdx: number) => void>(() => {});
+  const surahVersesRef = useRef<Verse[]>([]);
 
   useEffect(() => { autoPlayModeRef.current = autoPlayMode; }, [autoPlayMode]);
+  useEffect(() => { surahVersesRef.current = surahVerses; }, [surahVerses]);
 
   const toInitials = (name: string) => {
     const words = name
@@ -271,9 +273,9 @@ export default function TafakkurHubScreen() {
   useEffect(() => {
     if (pendingPlay && surahVerses.length > 0 && activeSurah && versesSurahNumber === activeSurah.number && reciters.length > 0) {
       setPendingPlay(false);
-      loadAndPlayVerses(activeReciter, activeSurah, 0);
+      loadAndPlayVersesRef.current(activeReciter, activeSurah, 0);
     }
-  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah, reciters, loadAndPlayVerses]);
+  }, [surahVerses, pendingPlay, versesSurahNumber, activeReciter, activeSurah, reciters]);
 
   const stopAudio = useCallback(() => {
     requestIdRef.current++;
@@ -313,7 +315,7 @@ export default function TafakkurHubScreen() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ""; audioRef.current = null; }
     if (intervalRef.current) clearInterval(intervalRef.current);
 
-    const initialVerses = surahVerses;
+    const initialVerses = surahVersesRef.current;
     if (initialVerses.length === 0) { setIsLoadingAudio(false); return; }
 
     // playVerse accepts verses explicitly — avoids stale closure when autoplay advances surahs
@@ -417,7 +419,7 @@ export default function TafakkurHubScreen() {
     };
 
     playVerse(startIdx, initialVerses);
-  }, [fetchVerseAudioUrl, fetchVersesByChapter, playbackRate, reciters, surahVerses, surahs]);
+  }, [fetchVerseAudioUrl, fetchVersesByChapter, playbackRate, reciters, surahs]);
 
   useEffect(() => { loadAndPlayVersesRef.current = loadAndPlayVerses; }, [loadAndPlayVerses]);
 
@@ -474,8 +476,8 @@ export default function TafakkurHubScreen() {
     }
 
     if (!audioRef.current?.src && activeSurah) {
-      if (surahVerses.length > 0) {
-        loadAndPlayVerses(activeReciter, activeSurah, currentVerseIdx);
+      if (surahVersesRef.current.length > 0) {
+        loadAndPlayVersesRef.current(activeReciter, activeSurah, currentVerseIdx);
       } else {
         setPendingPlay(true);
       }
@@ -494,7 +496,7 @@ export default function TafakkurHubScreen() {
         }, 300);
       });
     }
-  }, [reciters, activeSurah, surahVerses, activeReciter, currentVerseIdx, isPlaying, loadAndPlayVerses]);
+  }, [reciters, activeSurah, activeReciter, currentVerseIdx, isPlaying]);
 
   const toggleNature = (soundId: string) => {
     const url = SOUND_FILES[soundId];
