@@ -1,14 +1,14 @@
 import { Test } from "@nestjs/testing";
 import { ImanifestService, AnalyzeResult } from "./imanifest.service";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { QuranApiService } from "../common/quran-api.service";
 import { RedisService } from "../common/redis.service";
 
 describe("ImanifestService", () => {
   let service: ImanifestService;
   let prisma: PrismaService;
-  let zhipu: ZhipuService;
+  let ai: AiService;
   let quranApi: QuranApiService;
   let redis: RedisService;
 
@@ -39,7 +39,7 @@ describe("ImanifestService", () => {
       providers: [
         ImanifestService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ZhipuService, useValue: mockZhipu },
+        { provide: AiService, useValue: mockZhipu },
         { provide: QuranApiService, useValue: mockQuranApi },
         { provide: RedisService, useValue: mockRedis },
       ],
@@ -47,7 +47,7 @@ describe("ImanifestService", () => {
 
     service = module.get<ImanifestService>(ImanifestService);
     prisma = module.get<PrismaService>(PrismaService);
-    zhipu = module.get<ZhipuService>(ZhipuService);
+    ai = module.get<AiService>(AiService);
     quranApi = module.get<QuranApiService>(QuranApiService);
     redis = module.get<RedisService>(RedisService);
     jest.clearAllMocks();
@@ -85,7 +85,7 @@ describe("ImanifestService", () => {
       expect(result).toEqual(mockAnalysisResult);
       expect(redis.get).toHaveBeenCalled();
       // Should NOT call AI or Quran API
-      expect(zhipu.extractThemes).not.toHaveBeenCalled();
+      expect(ai.extractThemes).not.toHaveBeenCalled();
       expect(quranApi.searchVerses).not.toHaveBeenCalled();
     });
 
@@ -108,9 +108,9 @@ describe("ImanifestService", () => {
       });
 
       expect(result.manifestationId).toBe("manifest-1");
-      expect(zhipu.extractThemes).toHaveBeenCalledWith("I want to be patient");
+      expect(ai.extractThemes).toHaveBeenCalledWith("I want to be patient");
       expect(quranApi.searchVerses).toHaveBeenCalled();
-      expect(zhipu.generateSummary).toHaveBeenCalled();
+      expect(ai.generateSummary).toHaveBeenCalled();
       expect(prisma.manifestation.create).toHaveBeenCalled();
       // Should cache the result with userId in key (data isolation)
       expect(redis.set).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe("ImanifestService", () => {
 
       expect(result.manifestationId).toBe("m-vision-1");
       expect(result.imagePath).toBe("vision:photo.jpg:123");
-      expect(zhipu.extractThemesVision).toHaveBeenCalledWith(
+      expect(ai.extractThemesVision).toHaveBeenCalledWith(
         "I see myself peaceful",
         "base64data",
         "image/jpeg",

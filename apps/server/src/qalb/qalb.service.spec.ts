@@ -1,12 +1,12 @@
 import { Test } from "@nestjs/testing";
 import { QalbService } from "./qalb.service";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 
 describe("QalbService", () => {
   let service: QalbService;
   let prisma: PrismaService;
-  let zhipu: ZhipuService;
+  let ai: AiService;
 
   const mockPrisma = {
     reflection: {
@@ -25,13 +25,13 @@ describe("QalbService", () => {
       providers: [
         QalbService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ZhipuService, useValue: mockZhipu },
+        { provide: AiService, useValue: mockZhipu },
       ],
     }).compile();
 
     service = module.get<QalbService>(QalbService);
     prisma = module.get<PrismaService>(PrismaService);
-    zhipu = module.get<ZhipuService>(ZhipuService);
+    ai = module.get<AiService>(AiService);
     jest.clearAllMocks();
 
     mockZhipu.generateReflectionInsight.mockResolvedValue({
@@ -92,7 +92,7 @@ describe("QalbService", () => {
       expect(result.sentimentScore).toBe(0.85);
       expect(result.streakCount).toBe(1);
       expect(result.reflection.transcriptText).toBe(text);
-      expect(zhipu.analyzeSentiment).toHaveBeenCalledWith(text);
+      expect(ai.analyzeSentiment).toHaveBeenCalledWith(text);
       expect(prisma.reflection.create).toHaveBeenCalledWith({
         data: {
           userId,

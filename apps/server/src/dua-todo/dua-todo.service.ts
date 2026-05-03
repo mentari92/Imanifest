@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { QuranApiService } from "../common/quran-api.service";
 
 // In-memory task store for demo mode (no DB)
@@ -12,7 +12,7 @@ export class DuaToDoService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly zhipu: ZhipuService,
+    private readonly ai: AiService,
     private readonly quranApi: QuranApiService,
   ) {}
 
@@ -55,7 +55,7 @@ export class DuaToDoService {
 
     // Generate tasks via AI
     this.logger.log(`Generating tasks for manifestation ${manifestationId}`);
-    const taskObjects = await this.zhipu.generateTasks(intentText, verses);
+    const taskObjects = await this.ai.generateTasks(intentText, verses);
 
     // Try saving to DB, fall back to in-memory
     try {

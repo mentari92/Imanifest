@@ -2,13 +2,13 @@ import { Test } from "@nestjs/testing";
 import { NotFoundException } from "@nestjs/common";
 import { DuaToDoService } from "./dua-todo.service";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { QuranApiService } from "../common/quran-api.service";
 
 describe("DuaToDoService", () => {
   let service: DuaToDoService;
   let prisma: PrismaService;
-  let zhipu: ZhipuService;
+  let ai: AiService;
   let quranApi: QuranApiService;
 
   const mockPrisma = {
@@ -36,14 +36,14 @@ describe("DuaToDoService", () => {
       providers: [
         DuaToDoService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ZhipuService, useValue: mockZhipu },
+        { provide: AiService, useValue: mockZhipu },
         { provide: QuranApiService, useValue: mockQuranApi },
       ],
     }).compile();
 
     service = module.get<DuaToDoService>(DuaToDoService);
     prisma = module.get<PrismaService>(PrismaService);
-    zhipu = module.get<ZhipuService>(ZhipuService);
+    ai = module.get<AiService>(AiService);
     quranApi = module.get<QuranApiService>(QuranApiService);
     jest.clearAllMocks();
   });
@@ -95,7 +95,7 @@ describe("DuaToDoService", () => {
 
       expect(result.tasks).toHaveLength(5);
       expect(result.tasks[0].description).toBe("Step 1");
-      expect(zhipu.generateTasks).toHaveBeenCalledWith(
+      expect(ai.generateTasks).toHaveBeenCalledWith(
         "I want to be more grateful",
         mockManifestation.verses,
       );

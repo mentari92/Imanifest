@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { calculateReflectionStreak } from "../common/streak.util";
 
 /** Quran Foundation User API — configurable, graceful fallback if not set */
@@ -37,7 +37,7 @@ export class QalbService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly zhipu: ZhipuService,
+    private readonly zhipu: AiService,
   ) {}
 
   /** Sync reflection to Quran Foundation User API (stub — graceful no-op if not configured). */

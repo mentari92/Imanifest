@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { MulterModule } from "@nestjs/platform-express";
 import { ImanifestController } from "./imanifest.controller";
 import { ImanifestService } from "./imanifest.service";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { QuranApiService } from "../common/quran-api.service";
 import { QuranMcpService } from "../common/quran-mcp.service";
 
@@ -15,6 +15,6 @@ import { QuranMcpService } from "../common/quran-mcp.service";
     }),
   ],
   controllers: [ImanifestController],
-  providers: [ImanifestService, ZhipuService, QuranApiService, QuranMcpService],
+  providers: [ImanifestService, AiService, QuranApiService, QuranMcpService],
 })
 export class ImanifestModule {}

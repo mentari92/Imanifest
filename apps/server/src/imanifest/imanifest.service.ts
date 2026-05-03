@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@imanifest/database";
-import { ZhipuService } from "../common/zhipu.service";
+import { AiService } from "../common/ai.service";
 import { QuranApiService, VerseResult } from "../common/quran-api.service";
 import { RedisService } from "../common/redis.service";
 import { AnalyzeDto } from "./dto/analyze.dto";
@@ -99,7 +99,7 @@ export class ImanifestService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly zhipu: ZhipuService,
+    private readonly zhipu: AiService,
     private readonly quranApi: QuranApiService,
     private readonly redis: RedisService,
   ) {}
