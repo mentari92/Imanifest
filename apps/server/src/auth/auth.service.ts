@@ -367,7 +367,8 @@ export class AuthService {
     accessToken: string,
     subjectHint?: string,
   ): Promise<OauthUserProfile> {
-    const profileUrl = process.env.QURAN_FOUNDATION_OAUTH_USERINFO_URL || "";
+    const oauthBase = (process.env.QURAN_FOUNDATION_OAUTH_BASE_URL || "https://oauth2.quran.foundation").replace(/\/$/, "");
+    const profileUrl = process.env.QURAN_FOUNDATION_OAUTH_USERINFO_URL || `${oauthBase}/userinfo`;
     if (!profileUrl) {
       const stableId = subjectHint?.trim()
         ? createHash("sha256").update(subjectHint.trim()).digest("hex").slice(0, 20)
@@ -432,6 +433,26 @@ export class AuthService {
       // 1. Try to find by permanent sub
       const bySub = await this.prisma.user.findFirst({ where: { quranSub } });
       if (bySub) {
+        // If the found account has a synthetic email but we now have the user's real email,
+        // migrate the quranSub to the real account so their existing data is preserved.
+        const isSyntheticEmail = bySub.email.endsWith("@quran.foundation");
+        const hasRealEmail = email && !email.endsWith("@quran.foundation");
+        if (isSyntheticEmail && hasRealEmail) {
+          const realAccount = await this.prisma.user.findUnique({ where: { email } });
+          if (realAccount) {
+            // Transfer quranSub + tokens to the real account
+            await this.prisma.user.update({
+              where: { id: realAccount.id },
+              data: { quranSub, ...tokenFields },
+            });
+            // Release quranSub from synthetic account to avoid unique conflict
+            await this.prisma.user.update({
+              where: { id: bySub.id },
+              data: { quranSub: null },
+            }).catch(() => {});
+            return realAccount;
+          }
+        }
         return this.prisma.user.update({
           where: { id: bySub.id },
           data: { name, email, ...tokenFields },
