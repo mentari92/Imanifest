@@ -28,8 +28,9 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       if (!window.confirm("Are you sure you want to sign out?")) return;
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('imanifest_logged_out', '1');
       await logout();
-      window.location.replace("/auth?logged_out=true");
+      window.location.replace("/auth");
       return;
     }
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [

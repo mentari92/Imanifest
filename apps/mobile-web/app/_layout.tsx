@@ -65,7 +65,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!demoAuthMode && isAuthenticated && inAuthGroup) {
-    return <Redirect href="/" />;
+    // Don't redirect back to dashboard if the user just signed out
+    const justLoggedOut =
+      typeof sessionStorage !== 'undefined' &&
+      sessionStorage.getItem('imanifest_logged_out') === '1';
+    if (!justLoggedOut) return <Redirect href="/" />;
   }
 
   return <>{children}</>;
