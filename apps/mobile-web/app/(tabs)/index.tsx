@@ -263,7 +263,7 @@ export default function DashboardScreen() {
   const hasDuaStep = (data?.stats?.completedDuaTasks ?? 0) > 0;
   const hasTafakkurStep = (data?.recentActivity ?? []).some((activity) => {
     const type = activity.type.toLowerCase();
-    return type.includes('tafakkur') || type.includes('quran');
+    return type.includes('tafakkur') || type.includes('quran') || type.includes('dua');
   });
 
   const funnelSteps = [

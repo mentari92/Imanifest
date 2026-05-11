@@ -29,7 +29,7 @@ export default function SettingsScreen() {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       if (!window.confirm("Are you sure you want to sign out?")) return;
       await logout();
-      window.location.replace("/auth");
+      window.location.replace("/auth?logged_out=true");
       return;
     }
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [

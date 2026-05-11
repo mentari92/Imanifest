@@ -33,6 +33,7 @@ export class DashboardService {
       streak,
       recentImanifest,
       recentQalb,
+      recentDuaTasks,
     ] = await Promise.all([
       this.prisma.manifestation.count({ where: { userId } }),
       this.prisma.reflection.count({ where: { userId } }),
@@ -65,6 +66,12 @@ export class DashboardService {
         select: { id: true, transcriptText: true, createdAt: true },
         take: 3,
       }),
+      this.prisma.task.findMany({
+        where: { isCompleted: true, manifestation: { userId } },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, description: true, updatedAt: true },
+        take: 3,
+      }),
     ]);
 
     const streakCount = Array.isArray(streak)
@@ -88,6 +95,14 @@ export class DashboardService {
           (r.transcriptText || '').substring(0, 50) +
           ((r.transcriptText || '').length > 50 ? '...' : ''),
         createdAt: r.createdAt,
+      })),
+      ...recentDuaTasks.map((t: any) => ({
+        id: t.id,
+        type: 'dua',
+        title:
+          (t.description || '').substring(0, 50) +
+          ((t.description || '').length > 50 ? '...' : ''),
+        createdAt: t.updatedAt,
       })),
     ]
       .sort(

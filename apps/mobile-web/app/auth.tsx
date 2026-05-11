@@ -60,7 +60,9 @@ export default function AuthScreen() {
       url.searchParams.has('oauth_error') ||
       url.searchParams.has('code') ||
       url.searchParams.has('error');
-    if (hasOAuthParams) return;
+    // Don't auto-redirect if the user explicitly logged out
+    const justLoggedOut = url.searchParams.has('logged_out');
+    if (hasOAuthParams || justLoggedOut) return;
 
     autoRedirectedRef.current = true;
     // Kick off OAuth immediately so users land on Quran.Foundation hosted login.
