@@ -279,7 +279,7 @@ export class QuranApiService {
     // - Base URL like https://apis(-prelive).quran.foundation/auth
     // - Headers: x-auth-token (user access token) + x-client-id (our client id)
     // See: https://api-docs.quran.foundation/docs/user_related_apis_versioned/user-related-apis/
-    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "").replace(/\/$/, "");
+    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "https://apis.quran.foundation/auth").replace(/\/$/, "");
     const accessToken = (quranApiKey || "").trim();
 
     if (!userApiUrl) {
@@ -620,9 +620,9 @@ export class QuranApiService {
     quranApiKey: string,
     verseKey: string, // format "surah:verse" e.g. "2:255"
   ): Promise<{ id: string } | null> {
-    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "").replace(/\/$/, "");
+    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "https://apis.quran.foundation/auth").replace(/\/$/, "");
     const accessToken = (quranApiKey || "").trim();
-    if (!userApiUrl || !this.foundationClientId || !accessToken) return null;
+    if (!this.foundationClientId || !accessToken) return null;
 
     const parts = verseKey.split(":");
     const chapterKey = Number(parts[0] || 1);
@@ -653,9 +653,9 @@ export class QuranApiService {
   }
 
   async getUserStreaks(quranApiKey: string): Promise<{ days: number; status: string } | null> {
-    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "").replace(/\/$/, "");
+    const userApiUrl = (process.env.QURAN_FOUNDATION_USER_API_URL || "https://apis.quran.foundation/auth").replace(/\/$/, "");
     const accessToken = (quranApiKey || "").trim();
-    if (!userApiUrl || !this.foundationClientId || !accessToken) return null;
+    if (!this.foundationClientId || !accessToken) return null;
 
     try {
       const response = await axios.get<{ success: boolean; data?: Array<{ days: number; status: string }> }>(

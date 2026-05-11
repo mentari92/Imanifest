@@ -216,9 +216,16 @@ export class AuthService {
 
       const refreshToken = tokenResp.data?.refresh_token || null;
 
-      const profile = idTokenEmail
-        ? { email: idTokenEmail, name: idTokenName || "Quran.com User" }
-        : await this.resolveOauthProfile(quranAccessToken, idTokenSub);
+      let profile: OauthUserProfile;
+      if (idTokenEmail && idTokenName) {
+        profile = { email: idTokenEmail, name: idTokenName };
+      } else {
+        const resolved = await this.resolveOauthProfile(quranAccessToken, idTokenSub);
+        profile = {
+          email: idTokenEmail || resolved.email,
+          name: idTokenName || resolved.name,
+        };
+      }
 
       const user = await this.upsertOauthUser({
         quranSub: idTokenSub || null,
