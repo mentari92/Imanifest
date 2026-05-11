@@ -8,10 +8,10 @@
 
 ## Features
 
-- **Imanifest** — State your intention and receive matching Quranic verses with AI-generated guidance
 - **Qalb** — Voice or text journaling with AI sentiment reflection and multilingual response
-- **Tafakkur** — Full Quran reciter player with surah auto-continue and verse-level audio
+- **Imanifest** — State your intention and receive matching Quranic verses with AI-generated guidance
 - **Dua To-Do** — Auto-generated spiritual tasks from your manifestation, with completion tracking
+- **Tafakkur** — Full Quran reciter player with surah auto-continue and verse-level audio
 - **Dashboard** — Daily Iman Sync streak tracking and spiritual health overview
 
 ## Demo
