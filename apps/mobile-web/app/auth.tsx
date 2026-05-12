@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -48,32 +48,8 @@ export default function AuthScreen() {
     }
   }, [loading, user, token, router]);
 
-  const autoRedirectedRef = useRef(false);
-  useEffect(() => {
-    if (!oauthOnly) return;
-    if (autoRedirectedRef.current) return;
-    if (typeof window === 'undefined') return;
-
-    // If the user explicitly signed out, show the auth page — don't auto-redirect.
-    // Flag is cleared only when the user explicitly presses Sign In.
-    const justLoggedOut = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('imanifest_logged_out') === '1';
-    if (justLoggedOut) return;
-
-    const url = new URL(window.location.href);
-    const hasOAuthParams =
-      url.searchParams.has('oauth_code') ||
-      url.searchParams.has('oauth_error') ||
-      url.searchParams.has('code') ||
-      url.searchParams.has('error');
-    if (hasOAuthParams) return;
-
-    autoRedirectedRef.current = true;
-    // Kick off OAuth immediately so users land on Quran.Foundation hosted login.
-    startOAuthLogin().catch(() => {
-      // No-op: user can still press the button.
-      autoRedirectedRef.current = false;
-    });
-  }, [oauthOnly, startOAuthLogin]);
+  // No auto-redirect to OAuth — user must explicitly press the Sign In button.
+  // Auto-redirect caused silent re-login after logout (Quran.com session stays active).
 
   const upgradeUrl =
     (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_QURAN_UPGRADE_URL) ||

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@imanifest/database';
 import { QuranApiService } from '../common/quran-api.service';
+import { calculateReflectionStreak } from '../common/streak.util';
 
 @Injectable()
 export class DashboardService {
@@ -30,7 +31,7 @@ export class DashboardService {
       totalJournalEntries,
       totalDuaTasks,
       completedDuaTasks,
-      streak,
+      streakCount,
       recentImanifest,
       recentQalb,
       recentDuaTasks,
@@ -48,12 +49,7 @@ export class DashboardService {
           manifestation: { userId },
         },
       }),
-      this.prisma.reflection.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        select: { streakDate: true },
-        take: 30,
-      }),
+      calculateReflectionStreak(this.prisma, userId),
       this.prisma.manifestation.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -73,10 +69,6 @@ export class DashboardService {
         take: 3,
       }),
     ]);
-
-    const streakCount = Array.isArray(streak)
-      ? new Set(streak.map((r: any) => new Date(r.streakDate).toISOString().slice(0, 10))).size
-      : 0;
 
     // Build recent activity list
     const recentActivity = [
