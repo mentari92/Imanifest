@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { api, API_BASE_URL } from "./api";
@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function startOAuthLogin() {
+  const startOAuthLogin = useCallback(async () => {
     if (DEMO_AUTH_MODE) return;
 
     if (Platform.OS !== "web" || typeof window === "undefined") {
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     window.location.assign(`${API_BASE_URL}/auth/oauth/start`);
-  }
+  }, []);
 
   async function logout() {
     if (DEMO_AUTH_MODE) {

@@ -55,11 +55,9 @@ export default function AuthScreen() {
     if (typeof window === 'undefined') return;
 
     // If the user explicitly signed out, show the auth page — don't auto-redirect.
+    // Flag is cleared only when the user explicitly presses Sign In.
     const justLoggedOut = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('imanifest_logged_out') === '1';
-    if (justLoggedOut) {
-      sessionStorage.removeItem('imanifest_logged_out');
-      return;
-    }
+    if (justLoggedOut) return;
 
     const url = new URL(window.location.href);
     const hasOAuthParams =
@@ -153,12 +151,8 @@ export default function AuthScreen() {
 
   const handleOAuthPress = async () => {
     try {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const apiBase = `${window.location.protocol}//${window.location.hostname}/api`;
-        const startUrl = `${apiBase}/auth/oauth/start`;
-        console.log('[OAuth] Initiating Quran.com login → ', startUrl);
-        console.log('[OAuth] Expected redirect_uri: https://imanifestapp.com/api/auth/callback/qurancom');
-      }
+      // User is explicitly pressing Sign In — clear the logout guard flag.
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('imanifest_logged_out');
       await startOAuthLogin();
     } catch (error: any) {
       Alert.alert('OAuth Login Unavailable', error?.message || 'OAuth login could not be started.');
